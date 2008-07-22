@@ -1,0 +1,5 @@
+nvecserial = C:\MSys\1.0\local\lib\libsundials_nvecserial-0.exe
+cvode = C:\MSys\1.0\local\lib\libsundials_cvode-0.exe
+cvodes = C:\MSys\1.0\local\lib\libsundials_cvodes-1.exe
+ida = C:\MSys\1.0\local\lib\libsundials_ida-1.exe
+kinsol = C:\MSys\1.0\local\lib\libsundials_kinsol-0.exe

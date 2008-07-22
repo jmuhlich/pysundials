@@ -1,0 +1,99 @@
+PySUNDIALS: Python SUite of Nonlinear DIfferential/ALgebraic Solvers
+
+--- Description ---
+
+PySUNDIALS is a python package providing python bindings for the SUNDIALS suite
+of solvers. It is being developed by the triple 'J' group at Stellenbosch
+University, South Africa. While python bindings for SUNDIALS will hopefully be
+generally useful in the computational scientific community, they are being
+developed with the specific aim of providing a robust underlying numerical
+solver capable of implementing models conforming to the Systems Biology Markup
+Language specification (version 2), including triggers, events, and delays.  As
+such the development process is partially driven by the continuing parallel
+development of PySCeS.
+
+--- Download ---
+
+The latest release version of PySUNDIALS can be download at
+http://sourceforge.net/projects/pysundials, or alternatively, the very latest
+(potentially non-functional) version via anonymous svn using the command
+
+$ svn co https://pysundials.svn.sourceforge.net/svnroot/pysundials pysundials
+
+--- Installation On Linux/BSD ---
+
+* Download and install Python 2.4 or greater, preferably 2.5+
+* If you are using Python 2.4, download and install the ctypes module as well
+* Download and untar the complete SUNDIALS suite.
+* $ ./configure --enable-shared
+* $ make && make install
+* Download and untar PySUNDIALS
+* Change to the directory where you unpacked PySUNDIALS
+* $ python setup.py install
+
+--- Installation on Windows using MSys/MinGW ---
+
+* Download and install Python 2.5 or greater, using the windows binaries
+* Download and untar the complete SUNDIALS suite somewhere inside MSys.
+* Do NOT run aclocal, autoconf, or autoheader, or the makefiles will break!
+* $ ./configure --enable-shared
+* $ make && make install
+* Download and untar PySUNDIALS
+* Change to the directory where you unpacked PySUNDIALS
+* $ python setup.py -c mingw32 install
+
+If you receive a compile time error when executing the final command, which
+complains about missing sundials_conf.h, or other missing .h files, set the
+CPATH environment variable to point to the directory containing the sundials
+include directories, for example
+
+* $ CPATH=/local/include python setup.py -c mingw32 install
+
+Note that using MSys presents unique problems being a hybrid environment. We
+recommend using MSys only to compile and install (Py)SUNDIALS, not for use as
+an environment in which to run PySUNDIALS. Having followed the above
+instructions, the SUNDIALS shared libs will be in %MSYSROOT%/usr/local/lib/,
+and end with '-<digit>.exe'.  On older versions of MSys/MinGW, the '.exe'
+extension may be left off.
+
+--- Configuration ---
+
+PySUNDIALS uses ctypes to link the required SUNDIALS libraries directly into
+the running python process. In order to do this, it needs to know where to find
+those shared libraries. On Linux/BSD systems, this is usually auto detected, as
+library locations are standard, however on windows systems, the final location
+and even naming convention of the shared library files is compiler dependant.
+If PySUNDIALS cannot find the SUNDIALS libraries, please locate them yourself,
+and specify their locations in a file named ~/.pysundials/config (Linux/BSD),
+or %HOMEPATH%\pysundials\config (Windows). If PySUNDIALS cannot find this
+configuration file in your home directory, it will seek it in the same
+directory it was installed in, i.e. $PYTHONROOT/site-packages/pysundials/config
+
+In the 'config' file, anything following a hash (including the hash itself) is
+considered a comment. Each line specifies the location of a required library in
+the form 
+
+library = path
+
+Where "library" is one of 'c', 'aux', 'nvecserial', 'nvecparallel', 'cvode',
+'cvodes', 'ida', or 'kinsol', and "path" is the complete path of the
+appropriate library file. 'c', 'aux', and 'nvecparallel' are optional; the
+first two being generally autodetected, and the second only required if you
+will be using PySUNDIALS in parallel with MPI.
+
+You can find a sample config file for both posix and mingw32 systems in the doc
+subdirectory of the PySUNDIALS distribution.
+
+--- Examples ---
+
+You can find python versions of the sundials examples (serial only at present)
+in the examples subdirectory of the PySUNDIALS distribution.
+
+--- Documentation ---
+
+Documentation for the project is being developed in parallel with the project
+development itself, and will be released once complete.
+
+Contact
+
+james@sun.ac.za (Maintainer)

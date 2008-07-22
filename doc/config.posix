@@ -1,0 +1,5 @@
+nvecserial = /usr/local/lib/libsundials_nvecserial
+cvode = /usr/local/lib/libsundials_cvode
+cvodes = /usr/local/lib/libsundials_cvodes
+ida = /usr/local/lib/libsundials_ida
+kinsol = /usr/local/lib/libsundials_kinsol

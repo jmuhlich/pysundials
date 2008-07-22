@@ -1,0 +1,5 @@
+PySUNDIALS-2.3.0-a0.1
+James Dominy Thu 24 May 2007
+
+docstrings
+check krylov precoditioning for errors, because it's really slow!
