@@ -89,7 +89,7 @@ class NVector(object):
 			self.length = len(vector)
 			self.data = nvecserial.N_VNew_Serial(len(vector))
 			self.copy = False
-			copyarray(self,vector)
+			ctypes.memmove(self.addressof(), vector.ctypes.data, ctypes.sizeof(realtype)* self.length)
 		else:
 			raise TypeError("Cannot create NVector from type %s"%(type(vector).__name__))
 	
