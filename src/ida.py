@@ -1215,7 +1215,7 @@ class DenseMat(object):
 			self.data = M
 			self.copy = True
 		else:
-			raise TypeError("Cannot initialize DenseMat from type %s"%(type(init).__name__))
+			raise TypeError("Cannot initialize DenseMat from type %s"%(type(M).__name__))
 	
 	def __getitem__(self, index): #row major, i.e. index selects a row
 		"""x.__getitem__(y) <==> x[y]; returns row of matrix"""
