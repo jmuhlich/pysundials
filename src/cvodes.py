@@ -368,7 +368,7 @@ def CVodeSetMaxNumSteps(cvodememobj, maxsteps):
 	ret = cvodes.CVodeSetMaxNumSteps(cvodememobj.obj, maxsteps)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetMaxNumSteps() failed with flag %i"%(ret))
-cvodes.CVodeSetMaxNumSteps.argtypes = [ctypes.c_void_p, ctypes.c_int] 
+cvodes.CVodeSetMaxNumSteps.argtypes = [ctypes.c_void_p, ctypes.c_long] 
 cvodes.CVodeSetMaxNumSteps.restype = ctypes.c_int
 
 def CVodeSetMaxHnilWarns(cvodememobj, mxhnil):
@@ -1069,12 +1069,12 @@ def CVodeGetNumSensLinSolvSetups(cvodememobj):
 cvodes.CVodeGetNumSensLinSolvSetups.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_long)]
 cvodes.CVodeGetNumSensLinSolvSetups.restype = ctypes.c_int
 
-#def CVodeGetSensErrWeights(cvodememobj):
-#	ret = cvodes.CVodeGetSensErrWeights(cvodememobj.obj, eSweight)
-#	if ret < 0:
-#		raise AssertionError("SUNDIALS ERROR: CVodeGetSensErrWeights() failed with flag %i"%(ret))
-#cvodes.CVodeGetSensErrWeights.argtypes = [ctypes.c_void_p, ctypes.POINTER(_NVector)]
-#cvodes.CVodeGetSensErrWeights.restype = ctypes.c_int
+def CVodeGetSensErrWeights(cvodememobj, eSweight):
+	ret = cvodes.CVodeGetSensErrWeights(cvodememobj.obj, eSweight.data)
+	if ret < 0:
+		raise AssertionError("SUNDIALS ERROR: CVodeGetSensErrWeights() failed with flag %i"%(ret))
+cvodes.CVodeGetSensErrWeights.argtypes = [ctypes.c_void_p, ctypes.POINTER(_NVector)]
+cvodes.CVodeGetSensErrWeights.restype = ctypes.c_int
 
 def CVodeGetSensStats(cvodememobj):
 	nfSevals = ctypes.c_long(0)
@@ -2198,7 +2198,7 @@ def BandPrint(A):
 cvodes.BandPrint
 cvodes.BandPrint.restype = None
 
-CVBandJacFn = ctypes.CFUNCTYPE(ctypes.c_long, ctypes.c_long, ctypes.c_long, ctypes.c_long, ctypes.POINTER(_BandMat), realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
+CVBandJacFn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_long, ctypes.c_long, ctypes.c_long, ctypes.POINTER(_BandMat), realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVBandJacFn(func):
 	"""Creates a wrapper around a python callable object, that can be used as a callback for the Jacobian function. Jacobian functions for banded matrices take N (int = dimension of matrix), muppper (int = upper band width), mlower (int = lower band width), t (float = time step), J (BandMat = Jacobian Matrix), y (NVector), fy (NVector), jac_data (c_void_p), tmp1 (NVector), tmp2 (NVector), and tmp3 (NVector) as parameters, and return an integer."""
 	if func == None:
@@ -2464,7 +2464,7 @@ def CVDense(cvodememobj, N):
 	ret = cvodes.CVDense(cvodememobj.obj, N)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVDense() failed with flag %i"%(ret))
-cvodes.CVDense.argtypes = [ctypes.c_void_p, ctypes.c_int]
+cvodes.CVDense.argtypes = [ctypes.c_void_p, ctypes.c_long]
 cvodes.CVDense.restype = ctypes.c_int
 
 def CVDenseSetJacFn(cvodememobj, func, jac_data):

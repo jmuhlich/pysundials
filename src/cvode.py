@@ -1339,7 +1339,7 @@ def BandPrint(A):
 cvode.BandPrint
 cvode.BandPrint.restype = None
 
-CVBandJacFn = ctypes.CFUNCTYPE(ctypes.c_long, ctypes.c_long, ctypes.c_long, ctypes.c_long, ctypes.POINTER(_BandMat), realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
+CVBandJacFn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_long, ctypes.c_long, ctypes.c_long, ctypes.POINTER(_BandMat), realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVBandJacFn(func):
 	"""Creates a wrapper around a python callable object, that can be used as a callback for the Jacobian function. Jacobian functions for banded matrices take N (int = dimension of matrix), muppper (int = upper band width), mlower (int = lower band width), t (float = time step), J (BandMat = Jacobian Matrix), y (NVector), fy (NVector), jac_data (c_void_p), tmp1 (NVector), tmp2 (NVector), and tmp3 (NVector) as parameters, and return an integer."""
 	if func == None:
@@ -1580,7 +1580,7 @@ def CVDense(cvodememobj, N):
 	ret = cvode.CVDense(cvodememobj.obj, N)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVDense() failed with flag %i"%(ret))
-cvode.CVDense.argtypes = [ctypes.c_void_p, ctypes.c_int]
+cvode.CVDense.argtypes = [ctypes.c_void_p, ctypes.c_long]
 cvode.CVDense.restype = ctypes.c_int
 
 def CVDenseSetJacFn(cvodememobj, func, jac_data):

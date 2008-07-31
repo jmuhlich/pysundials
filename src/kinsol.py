@@ -327,7 +327,7 @@ kinsol.KINGetFuncNorm.argtypes = [ctypes.c_void_p, ctypes.POINTER(realtype)]
 kinsol.KINGetFuncNorm.restype = ctypes.c_int
 
 def KINGetStepLength(kinsolmemobj):
-	steplength = ctypes.c_long(0)
+	steplength = realtype(0)
 	ret = kinsol.KINGetStepLength(kinsolmemobj.obj, ctypes.byref(steplength))
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: KINGetStepLength() failed with flag %i"%(ret))
@@ -781,7 +781,7 @@ kinsol.KINBandGetNumFuncEvals.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes
 kinsol.KINBandGetNumFuncEvals.restype = ctypes.c_int
 
 def KINBandGetLastFlag(kinsolmemobj):
-	flag = ctypes.c_long(0)
+	flag = ctypes.c_int(0)
 	ret = kinsol.KINBandGetLastFlag(kinsolmemobj.obj, ctypes.byref(flag))
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: KINBandGetLastFlag() failed with flag %i"%(ret))
