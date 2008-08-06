@@ -49,7 +49,11 @@ class KinsolMemObj(object):
 		self.obj = obj
 
 	def __del__(self):
-		kinsol.KINFree(self.obj)
+		p = ctypes.c_void_p()
+		p.value = self.obj
+		kinsol.KINFree(ctypes.byref(p))
+kinsol.KINFree.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+kinsol.KINFree.restype = None
 
 KINSysFn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackKINSysFn(func):
@@ -340,9 +344,9 @@ def KINGetReturnFlagName(flag):
 kinsol.KINGetReturnFlagName.argtypes = [ctypes.c_int]
 kinsol.KINGetReturnFlagName.restype = ctypes.c_char_p
 
-def KINFree(kinsolmemobj):
-	kinsol.KINFree(kinsolmemobj.obj)
-	del kinsolmemobj.obj
+#def KINFree(kinsolmemobj):
+#	kinsol.KINFree(kinsolmemobj.obj)
+#	del kinsolmemobj.obj
 
 ########################
 # sundials_iterative.h #

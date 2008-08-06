@@ -65,7 +65,11 @@ class IdaMemObj(object):
 		self.obj = obj
 
 	def __del__(self):
-		ida.IDAFree(self.obj)
+		p = ctypes.c_void_p()
+		p.value = self.obj
+		ida.IDAFree(ctypes.byref(p))
+ida.IDAFree.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+ida.IDAFree.restype = None
 
 IDAResFn = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackIDAResFn(func):
@@ -591,11 +595,10 @@ def IDAGetReturnFlagName(flag):
 ida.IDAGetReturnFlagName.argtypes = [ctypes.c_int]
 ida.IDAGetReturnFlagName.restype = ctypes.c_char_p
 
-def IDAFree(ida_mem):
-	ret = ida.IDAFree(ida_mem.obj)
-	if ret < 0:
-		raise AssertionError("SUNDIALS ERROR: IDAFree() failed with flag %i"%(ret))
-
+#def IDAFree(ida_mem):
+#	ret = ida.IDAFree(ida_mem.obj)
+#	if ret < 0:
+#		raise AssertionError("SUNDIALS ERROR: IDAFree() failed with flag %i"%(ret))
 
 ########################
 # sundials_iterative.h #

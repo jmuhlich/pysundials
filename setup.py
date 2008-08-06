@@ -51,15 +51,28 @@ f.write(libfname)
 f.close()
 
 setup(
- name = "pysundials",
- version = "2.3.0-b4",
- description = "Python wrappers for the SUite of Non-linear DIfferential and ALgebraic solvers (SUNDIALS).",
- maintainer = 'James Dominy',
- maintainer_email = 'james@sun.ac.za',
- url = 'http://www.sourceforge.net/projects/pysundials',
- package_dir = {'pysundials': 'src'},
- packages = ['pysundials'],
- package_data = {'pysundials': ['auxlibname']}
+	 name = "pysundials",
+	 version = "2.3.0-b6",
+	 description = "Python wrappers for the SUite of Non-linear DIfferential and ALgebraic solvers (SUNDIALS).",
+	 maintainer = 'James Dominy',
+	 maintainer_email = 'james@sun.ac.za',
+	 url = 'http://www.sourceforge.net/projects/pysundials',
+	 package_dir = {'pysundials': 'src'},
+	 packages = ['pysundials'],
+	 package_data = {'pysundials': ['auxlibname']},
+	 classifiers = [
+		'Development Status :: 4 - Beta', 
+		'Environment :: Console', 
+		'Intended Audience :: Science/Research', 
+		'License :: OSI Approved :: MIT License',
+		'Operating System :: OS Independent',
+		'Programming Language :: Python',
+		'Programming Language :: C',
+		'Topic :: Scientific/Engineering :: Bio-Informatics',
+		'Topic :: Scientific/Engineering :: Chemistry',
+		'Topic :: Scientific/Engineering :: Mathematics',
+		'Topic :: Software Development :: Libraries :: Python Modules'
+	]
 )
 
 os.remove('src/auxlibname')

@@ -218,7 +218,11 @@ class CVodeMemObj(object):
 		self.obj = obj
 
 	def __del__(self):
-		cvodes.CVodeFree(self.obj)
+		p = ctypes.c_void_p()
+		p.value = self.obj
+		cvodes.CVodeFree(ctypes.byref(p))
+cvodes.CVodeFree.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+cvodes.CVodeFree.restype = None
 
 CVRhsFn = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVRhsFn(func):
@@ -1073,7 +1077,7 @@ def CVodeGetSensErrWeights(cvodememobj, eSweight):
 	ret = cvodes.CVodeGetSensErrWeights(cvodememobj.obj, eSweight.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeGetSensErrWeights() failed with flag %i"%(ret))
-cvodes.CVodeGetSensErrWeights.argtypes = [ctypes.c_void_p, ctypes.POINTER(_NVector)]
+cvodes.CVodeGetSensErrWeights.argtypes = [ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector)]
 cvodes.CVodeGetSensErrWeights.restype = ctypes.c_int
 
 def CVodeGetSensStats(cvodememobj):
@@ -1134,10 +1138,10 @@ def CVodeGetSensNonlinSolvStats(cvodememobj):
 cvodes.CVodeGetSensNonlinSolvStats.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_long), ctypes.POINTER(ctypes.c_long)]
 cvodes.CVodeGetSensNonlinSolvStats.restype = ctypes.c_int
 
-def CVodeFree(cvodememobj):
-	"""CVodeFree frees the problem memory cvodememobj allocated by CVodeCreate and CVodeMalloc."""
-	cvodes.CVodeFree(cvodememobj.obj)
-	del cvodememobj.obj
+#def CVodeFree(cvodememobj):
+#	"""CVodeFree frees the problem memory cvodememobj allocated by CVodeCreate and CVodeMalloc."""
+#	cvodes.CVodeFree(cvodememobj.obj)
+#	del cvodememobj.obj
 
 def CVodeQuadFree(cvodememobj):
 	ret = cvodes.CVodeQuadFree(cvodememobj.obj)

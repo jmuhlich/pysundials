@@ -155,7 +155,7 @@ __ActualCallback = []
 #		('cv_eh_data', ctypes.c_void_p),
 #		('cv_errfp', ctypes.c_void_p),
 #		('cv_sldeton', ctypes.c_int),
-#		('cv_ssdat[6][4]', realtype),
+#		('cv_ssdat', (realtype*6)*4),
 #		('cv_nscon', ctypes.c_int),
 #		('cv_nor', ctypes.c_long),
 #		('cv_gfun', ctypes.c_void_p),
@@ -178,9 +178,15 @@ __ActualCallback = []
 class CVodeMemObj(object):
 	def __init__(self, obj):
 		self.obj = obj
+		self.dealloc = False
 
 	def __del__(self):
-		cvode.CVodeFree(self.obj)
+		if self.dealloc:
+			p = ctypes.c_void_p()
+			p.value = self.obj
+			cvode.CVodeFree(ctypes.byref(p))
+cvode.CVodeFree.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
+cvode.CVodeFree.restype = None
 
 CVRhsFn = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVRhsFn(func):
@@ -428,6 +434,7 @@ def CVodeMalloc(cvodememobj, func, t0, y0, itol, reltol, abstol):
 		raise ValueError("itol must be one of CV_SS or CV_SV")
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeMalloc() failed with flag %i"%(ret))
+	cvodememobj.dealloc = True
 cvode.CVodeMalloc.argtypes = [ctypes.c_void_p, CVRhsFn, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.c_int, realtype, ctypes.c_void_p]
 cvode.CVodeMalloc.restype = ctypes.c_int
 
@@ -712,10 +719,10 @@ def CVodeGetReturnFlagName(flag):
 cvode.CVodeGetReturnFlagName.argtypes = [ctypes.c_int]
 cvode.CVodeGetReturnFlagName.restype = ctypes.c_char_p
 
-def CVodeFree(cvodememobj):
-	"""CVodeFree frees the problem memory cvodememobj allocated by CVodeCreate and CVodeMalloc."""
-	cvode.CVodeFree(cvodememobj.obj)
-	del cvodememobj.obj
+#def CVodeFree(cvodememobj):
+#	"""CVodeFree frees the problem memory cvodememobj allocated by CVodeCreate and CVodeMalloc."""
+#	cvode.CVodeFree(cvodememobj.obj)
+#	del cvodememobj.obj
 
 ########################
 # sundials_iterative.h #
