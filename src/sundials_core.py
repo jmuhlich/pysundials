@@ -22,6 +22,7 @@ libpaths = {
 }
 
 def loadlib(libname):
+	'''Links the specified library into the running python interpreter.\nlibname must be one of 'c', 'aux', 'nvecserial', 'nvecparallel', 'cvode', 'cvodes', 'ida', or 'kinsol'.'''
 	try:
 		lib = ctypes.CDLL(libpaths[libname])
 	except OSError, e:
@@ -62,7 +63,6 @@ except:
 sundials_core_aux = loadlib("aux")
 
 realsize = sundials_core_aux.getsizeofrealtype()
-#copyarray = sundials_core_aux.copyarray
 
 try:
 	import numpy

@@ -1,4 +1,10 @@
-"""Python bindings for the cvode, cvode_band, cvode_bandpre, cvode_bbdpre, cvode_dense, cvode_diag, cvode_spbcgs, cvode_spmgr, cvode_spils, and cvode_sptfqmr header files."""
+"""Python bindings for the CVODE integrator
+
+The following SUNDIALS header files are wrapped:
+	cvode.h, cvode_band.h, cvode_bandpre.h, cvode_bbdpre.h, cvode_dense.h,
+	cvode_diag.h, cvode_spbcgs.h, cvode_spmgr.h, cvode_spils.h,
+	cvode_sptfqmr.h
+"""
 import ctypes
 import sundials_core
 import nvecserial
@@ -176,6 +182,7 @@ __ActualCallback = []
 #	]
 
 class CVodeMemObj(object):
+	"""The CVodeMemObj class exists to provide automated memory management of\nthe underlying void *cvodemem integrator memory."""
 	def __init__(self, obj):
 		self.obj = obj
 		self.dealloc = False
@@ -190,7 +197,7 @@ cvode.CVodeFree.restype = None
 
 CVRhsFn = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVRhsFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the RHS function. RHS functions take time_step (float), y (NVector), ydot (NVector), and f_data (c_void_p) as parameters, and return an integer."""
+	"""Returns a callback wrapper around the given python callable object (func).\nThis function should never be called directly, as it is called implicitly by any\nfunctions that specify a RHS function.\n\nThe callable python objet must takes exactly 4 parameters, which will be passed in as\n\ttime_step (float)\n\ty (NVector)\n\tydot (NVector)\n\tf_data (c_void_p)\n\nand must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVRhsFn)
 	exec 'def __CallbackInterface_%s(t, y, ydot, f_data):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(ydot), f_data)'%(func.func_name, len(__ActualCallback))
@@ -201,7 +208,7 @@ def WrapCallbackCVRhsFn(func):
 
 CVRootFn = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(realtype), ctypes.c_void_p)
 def WrapCallbackCVRootFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the root finding function. Root finding functions take time_step (float), y (NVector), gout (NVector), and g_data (c_void_p) as parameters, and return an integer."""
+	"""Returns a callback wrapper around the given python callable object (func).\nThis function should never be called directly, as it is called implicitly by any\nfunctions that specify a root finding function.\n\nThe callable python objet must takes exactly 4 parameters, which will be passed in as\n\ttime_step (float)\n\ty (NVector)\n\tgout (NVector)\n\tg_data (c_void_p)\n\nand must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVRootFn)
 	exec 'def __CallbackInterface_%s(t, y, gout, g_data):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), gout, g_data)'%(func.func_name, len(__ActualCallback))
@@ -212,7 +219,7 @@ def WrapCallbackCVRootFn(func):
 
 CVEwtFn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVEwtFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the error weight function. Error weight functions take y (NVector), ewt (NVector), and e_data (c_void_p) as parameters, and return an integer."""
+	"""Returns a callback wrapper around the given python callable object (func).\nThis function should never be called directly, as it is called implicitly by any\nfunctions that specify an error weight function.\n\nThe callable python objet must takes exactly 3 parameters, which will be passed in as\n\ty (NVector)\n\tewt (NVector)\n\te_data (c_void_p)\n\nand must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVEwtFn)
 	exec 'def __CallbackInterface_%s(y, ewt, e_data):\n\treturn __ActualCallback[%i](nvecserial.NVector(y), nvecserial.NVector(ewt), e_data)'%(func.func_name, len(__ActualCallback))

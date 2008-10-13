@@ -11,7 +11,6 @@ class UserData (ctypes.Structure):
 PUserData = ctypes.POINTER(UserData)
 
 def f(t, y, ydot, f_data):
-	global count
 	data = ctypes.cast(f_data, PUserData)
 
 	yd1 = ydot[0] = -data.contents.p[0]*y[0] + data.contents.p[1]*y[1]*y[2]

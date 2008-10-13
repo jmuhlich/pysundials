@@ -68,7 +68,7 @@ nvecserial.N_VMinQuotient_Serial.argtypes = [PVector, PVector]
 nvecserial.N_VMinQuotient_Serial.restype = realtype
 
 class NVector(object):
-	"""Wrapper class around the serial implementation of the NVector"""
+	"""The NVector object provides a convenient wrapper around the SUNDIALS NVector structure.\nIt can be indexed or sliced like any other python sequenece, and\n like other python sequences does not provide original object return. In\naddition, many vector operations are implemented."""
 	def __init__(self, vector):
 		"""NVector.__init__(self, vector) -> NVector\nvector may be a list, NVector, or numpy ndarray of appropriate type"""
 		if type(vector) in [list, NVector]:
@@ -281,6 +281,7 @@ class NVector(object):
 		return ret
 
 	def addressof(self, index = 0):
+		"""Returns the address of a particular realtype of index 'index' from within\nthe NVector's actual data array. Useful for passing a pointer to a partiular\nportion of the NVector."""
 		return ctypes.addressof(self.data.contents.content.contents.data.contents)+(index * ctypes.sizeof(realtype))
 	
 	def ptrto(self, index = 0):
@@ -414,6 +415,7 @@ class NVector(object):
 		return nvecserial.N_VMinQuotient_Serial(self.data, v.data)
 
 class NVectorArray(object):
+	"""A wrapper object around NVectorArray's."""
 	def __init__(self, vector_init):
 		self.length = len(vector_init)
 		self.data = []
