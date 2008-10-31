@@ -1,4 +1,41 @@
-"""Python bindings for the cvodes, cvodes_band, cvodes_bandpre, cvodes_bbdpre, cvodes_dense, cvodes_diag, cvodes_spbcgs, cvodes_spmgr, cvodes_spils, and cvodes_sptfqmr header files."""
+#cvodes.py is part of the PySUNDIALS package, and is released under the
+#following terms and conditions.
+
+#Copyright (c) 2007, James Dominy, Brett Olivier, Jan Hendrik Hofmeyr, Johann Rohwer
+#All rights reserved.
+#
+#Redistribution and use in source and binary forms, with or without
+#modification, are permitted provided that the following conditions are met:
+#
+#1. Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+#2. Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+#3. Neither the name of the <ORGANIZATION> nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+#LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#POSSIBILITY OF SUCH DAMAGE.
+
+"""Python bindings for the CVODES integrator
+
+The following SUNDIALS header files are wrapped:
+	cvodes.h, cvodes_band.h, cvodes_bandpre.h, cvodes_bbdpre.h, cvodes_dense.h,
+	cvodes_diag.h, cvodes_spbcgs.h, cvodes_spmgr.h, cvodes_spils.h,
+	cvodes_sptfqmr.h
+"""
+
 import ctypes
 import sundials_core
 import nvecserial
@@ -102,7 +139,7 @@ CV_FAIL_OTHER = 2
 __Callback = []
 __ActualCallback = []
 
-#it's there if I ever need it
+#it's here if I ever need it for something
 #class CVodeMemRec(ctypes.Structure):
 #	_fields_ = [
 #		('cv_uround', realtype),
@@ -193,7 +230,7 @@ __ActualCallback = []
 #		('cv_eh_data', ctypes.c_void_p),
 #		('cv_errfp', ctypes.c_void_p),
 #		('cv_sldeton', ctypes.c_int),
-#		('cv_ssdat[6][4]', realtype),
+#		('cv_ssdat', (realtype*6)*4),
 #		('cv_nscon', ctypes.c_int),
 #		('cv_nor', ctypes.c_long),
 #		('cv_gfun', ctypes.c_void_p),
@@ -214,19 +251,22 @@ __ActualCallback = []
 #	]
 
 class CVodeMemObj(object):
+	"""The CVodeMemObj class exists to provide automated memory management of the underlying void *cvodemem integrator memory, and should never be instantiated directly"""
 	def __init__(self, obj):
 		self.obj = obj
+		self.dealloc = False
 
 	def __del__(self):
-		p = ctypes.c_void_p()
-		p.value = self.obj
-		cvodes.CVodeFree(ctypes.byref(p))
+		if self.dealloc:
+			p = ctypes.c_void_p()
+			p.value = self.obj
+			cvodes.CVodeFree(ctypes.byref(p))
 cvodes.CVodeFree.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 cvodes.CVodeFree.restype = None
 
 CVRhsFn = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVRhsFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the RHS function. RHS functions take time_step (float), y (NVector), ydot (NVector), and f_data (c_void_p) as parameters, and return an integer."""
+	"""Returns a callback wrapper around the given python callable object (func). This function should never be called directly, as it is called implicitly by any functions that specify a RHS function.\n\nThe callable python objet must takes exactly 4 parameters, which will be passed in as\n\ttime_step (float)\n\ty (NVector)\n\tydot (NVector)\n\tf_data (c_void_p)\n\nand must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVRhsFn)
 	exec 'def __CallbackInterface_%s(t, y, ydot, f_data):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(ydot), f_data)'%(func.func_name, len(__ActualCallback))
@@ -237,7 +277,7 @@ def WrapCallbackCVRhsFn(func):
 
 CVRootFn = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(realtype), ctypes.c_void_p)
 def WrapCallbackCVRootFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the root finding function. Root finding functions take time_step (float), y (NVector), gout (NVector), and g_data (c_void_p) as parameters, and return an integer."""
+	"""Returns a callback wrapper around the given python callable object (func). This function should never be called directly, as it is called implicitly by any functions that specify a root finding function.\n\nThe callable python objet must takes exactly 4 parameters, which will be passed in as\n\ttime_step (float)\n\ty (NVector)\n\tgout (NVector)\n\tg_data (c_void_p)\n\nand must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVRootFn)
 	exec 'def __CallbackInterface_%s(t, y, gout, g_data):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), gout, g_data)'%(func.func_name, len(__ActualCallback))
@@ -248,7 +288,7 @@ def WrapCallbackCVRootFn(func):
 
 CVEwtFn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVEwtFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the error weight function. Error weight functions take y (NVector), ewt (NVector), and e_data (c_void_p) as parameters, and return an integer."""
+	"""Returns a callback wrapper around the given python callable object (func). This function should never be called directly, as it is called implicitly by any functions that specify an error weight function.\n\nThe callable python objet must takes exactly 3 parameters, which will be passed in as\n\ty (NVector)\n\tewt (NVector)\n\te_data (c_void_p)\n\nand must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVEwtFn)
 	exec 'def __CallbackInterface_%s(y, ewt, e_data):\n\treturn __ActualCallback[%i](nvecserial.NVector(y), nvecserial.NVector(ewt), e_data)'%(func.func_name, len(__ActualCallback))
@@ -270,9 +310,9 @@ def WrapCallbackCVErrHandlerFn(func):
 
 CVQuadRhsFn = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVQuadRhsFn(func):
-	exec 'def __CallbackInterface_%s(t, y, yQdot, fQ_data):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(yQdot), fQ_data)'%(func.func_name, len(__ActualCallback))
 	if func == None:
 		return ctypes.cast(None, CVQuadRhsFn)
+	exec 'def __CallbackInterface_%s(t, y, yQdot, fQ_data):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(yQdot), fQ_data)'%(func.func_name, len(__ActualCallback))
 	__ActualCallback.append(func)
 	tmp = CVQuadRhsFn(eval("__CallbackInterface_%s"%(func.func_name)))
 	__Callback.append(tmp)
@@ -280,9 +320,9 @@ def WrapCallbackCVQuadRhsFn(func):
 
 CVSensRhsFn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(ctypes.POINTER(nvecserial._NVector)), ctypes.POINTER(ctypes.POINTER(nvecserial._NVector)), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVSensRhsFn(func):
-	exec 'def __CallbackInterface_%s(Ns, t, y, ydot, yS, ySdot, fS_data, tmp1, tmp2):\n\treturn __ActualCallback[%i](Ns, t, nvecserial.NVector(y), nvecserial.NVector(ydot), nvecserial.NVector(yS), nvecserial.NVector(ySdot), fS_data, nvecserial.NVector(tmp1), nvecserial.NVector(tmp2))'%(func.func_name, len(__ActualCallback))
 	if func == None:
 		return ctypes.cast(None, CVSensRhsFn)
+	exec 'def __CallbackInterface_%s(Ns, t, y, ydot, yS, ySdot, fS_data, tmp1, tmp2):\n\treturn __ActualCallback[%i](Ns, t, nvecserial.NVector(y), nvecserial.NVector(ydot), nvecserial.NVector(yS), nvecserial.NVector(ySdot), fS_data, nvecserial.NVector(tmp1), nvecserial.NVector(tmp2))'%(func.func_name, len(__ActualCallback))
 	__ActualCallback.append(func)
 	tmp = CVSensRhsFn(eval("__CallbackInterface_%s"%(func.func_name)))
 	__Callback.append(tmp)
@@ -290,9 +330,9 @@ def WrapCallbackCVSensRhsFn(func):
 
 CVSensRhs1Fn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_int, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVSensRhs1Fn(func):
-	exec 'def __CallbackInterface_%s(Ns, t, y, ydot, iS, yS, ySdot, fS_data, tmp1, tmp2):\n\treturn __ActualCallback[%i](Ns, t, nvecserial.NVector(y), nvecserial.NVector(ydot), iS, nvecserial.NVector(yS), nvecserial.NVector(ySdot), fS_data, nvecserial.NVector(tmp1), nvecserial.NVector(tmp2))'%(func.func_name, len(__ActualCallback))
 	if func == None:
 		return ctypes.cast(None, CVSensRhs1Fn)
+	exec 'def __CallbackInterface_%s(Ns, t, y, ydot, iS, yS, ySdot, fS_data, tmp1, tmp2):\n\treturn __ActualCallback[%i](Ns, t, nvecserial.NVector(y), nvecserial.NVector(ydot), iS, nvecserial.NVector(yS), nvecserial.NVector(ySdot), fS_data, nvecserial.NVector(tmp1), nvecserial.NVector(tmp2))'%(func.func_name, len(__ActualCallback))
 	__ActualCallback.append(func)
 	tmp = CVSensRhs1Fn(eval("__CallbackInterface_%s"%(func.func_name)))
 	__Callback.append(tmp)
@@ -300,9 +340,9 @@ def WrapCallbackCVSensRhs1Fn(func):
 
 CVRhsFnB = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVRhsFnB(func):
-	exec 'def __CallbackInterface_%s(t, y, yB, yBdot, f_dataB):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(yB), nvecserial.NVector(yBdot), f_dataB)'%(func.func_name, len(__ActualCallback))
 	if func == None:
 		return ctypes.cast(None, CVRhsFnB)
+	exec 'def __CallbackInterface_%s(t, y, yB, yBdot, f_dataB):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(yB), nvecserial.NVector(yBdot), f_dataB)'%(func.func_name, len(__ActualCallback))
 	__ActualCallback.append(func)
 	tmp = CVRhsFnB(eval("__CallbackInterface_%s"%(func.func_name)))
 	__Callback.append(tmp)
@@ -310,16 +350,16 @@ def WrapCallbackCVRhsFnB(func):
 
 CVQuadRhsFnB = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVQuadRhsFnB(func):
-	exec 'def __CallbackInterface_%s(t, y, yB, qBdot, fQ_dataB):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(yB), nvecserial.NVector(qBdot), fQ_dataB)'%(func.func_name, len(__ActualCallback))
 	if func == None:
 		return ctypes.cast(None, CVQuadRhsFnB)
+	exec 'def __CallbackInterface_%s(t, y, yB, qBdot, fQ_dataB):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(yB), nvecserial.NVector(qBdot), fQ_dataB)'%(func.func_name, len(__ActualCallback))
 	__ActualCallback.append(func)
 	tmp = CVQuadRhsFnB(eval("__CallbackInterface_%s"%(func.func_name)))
 	__Callback.append(tmp)
 	return tmp
 
 def CVodeCreate(lmm, iter):
-	"""Creates an internal memory block for a problem to be solved by CVODES.\n\tlmm\tis the type of linear multistep method to be used. The legal values are CV_ADAMS and CV_BDF.\n\t\tCV_ADAMS\t(Adams-Moulton) is recommended for non-stiff problems.\n\t\tCV_BDF\t\t(Backward Differentiation Formula) is recommended for stiff problems.  \n\titer\tspecifies whether functional or newton iteration will be used. Legal values are: \n\t\tCV_FUNCTIONAL\tdoes not require linear algebra \n\t\tCV_NEWTON\trequires the solution of linear systems. Requires the specification of a CVODES linear solver. (Recommended for stiff problems)."""
+	"""Sets up a CVODES integrator structure, and returns a handle it in the form of a CVodeMemObj\n\tlmm\tis the type of linear multistep method to be used. The legal values are CV_ADAMS and CV_BDF.\n\t\tCV_ADAMS\t(Adams-Moulton) is recommended for non-stiff problems.\n\t\tCV_BDF\t\t(Backward Differentiation Formula) is recommended for stiff problems.\n\titer\tspecifies whether functional or newton iteration will be used. Legal values are: \n\t\tCV_FUNCTIONAL\tdoes not require linear algebra \n\t\tCV_NEWTON\trequires the solution of linear systems. Requires the specification of a CVODES linear solver. (Recommended for stiff problems)."""
 	obj = cvodes.CVodeCreate(lmm, iter)
 	if obj == None:
 		raise AssertionError("SUNDIALS ERROR: CVodeCreate() failed - returned NULL pointer")
@@ -328,7 +368,7 @@ cvodes.CVodeCreate.argtypes = [ctypes.c_int, ctypes.c_int]
 cvodes.CVodeCreate.restype = ctypes.c_void_p
 
 def CVodeSetErrHandlerFn(cvodememobj, func,  eh_data):
-	"""Sets a user provided error handling function.\n\tfunc\tis a python callable wrapped by WrapCallbackCVErrHandlerFn\n\teh_data\tis any user data you would like to pass"""
+	"""Sets a user provided error handling function.\n\tfunc\tis a python callable taking the parameters\n\t\terror_code (integer)\n\t\tmodule (string)\n\t\tfunction_name (string)\n\t\tmessage (string)\n\t\teh_data (pointer)\n\teh_data\tis a pointer to any user data you would like passed through to your custom handler. The specified function will be passed eh_data as its eh_data parameter."""
 	ret = cvodes.CVodeSetErrHandlerFn(cvodememobj.obj, WrapCallbackCVErrHandlerFn(func), eh_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetErrHanderFn() failed with flag %i"%(ret))
@@ -336,7 +376,7 @@ cvodes.CVodeSetErrHandlerFn.argtypes = [ctypes.c_void_p, CVErrHandlerFn, ctypes.
 cvodes.CVodeSetErrHandlerFn.restype = ctypes.c_int
 
 def CVodeSetErrFile(cvodememobj, fileobj):
-	"""Sets the file where all error messages and warnings will be written if the default error handling function is used.\n\tfileobj\tis a file object opened for writing"""
+	"""Sets the file where all error messages and warnings will be written if the default error handling function is used.\n\tfileobj\tmust be a file object opened for writing"""
 	ret = cvodes.CVodeSetErrFile(cvodememobj.obj, sundials_core.fdopen(fileobj.fileno, fileobj.mode))
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetErrFile() failed with flag %i"%(ret))
@@ -352,7 +392,7 @@ cvodes.CVodeSetFdata.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
 cvodes.CVodeSetFdata.restype = ctypes.c_int
 
 def CVodeSetEwtFn(cvodememobj, func, e_data):
-	"""Sets a user provided error weight function.\n\tfunc\tis a python callable wrapped by WrapCallbackCVEwtFn\n\te_data\tis any user data you would like to pass"""
+	"""Sets a user provided error weight function.\n\tfunc\tis a python callable taking the following parameters which must return 0 in the case of success, otherwise non-zero\n\t\ty (NVector): the current value vector\n\t\tewt (NVector): the vector which will contain the error weights on return\n\t\te_data (c_void_p): a pointer to any user data\n\te_data\tis a pointer to any user data you would like passed through to your custom function. The specified function will be passed e_data as its e_data parameter."""
 	ret = cvodes.CVodeSetEwtFn(cvodememobj.obj, WrapCallbackCVEwtFn(func), e_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetEwtFn() failed with flag %i"%(ret))
@@ -384,7 +424,7 @@ cvodes.CVodeSetMaxHnilWarns.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvodes.CVodeSetMaxHnilWarns.restype = ctypes.c_int
 
 def CVodeSetStabLimDet(cvodememobj, stldet):
-	"""Turns stability limit detection on or off (stldet == 1 [ON], stldet == 0 [OFF)\nWhen CV_BDF is used and order is 3 or greater, CVsldet is called to detect stability limit. If limit is detected, the order is reduced. Default is off"""
+	"""Turns stability limit detection on or off (stldet == 1 [ON], stldet == 0 [OFF])\nWhen CV_BDF is used and order is 3 or greater, CVsldet is called to detect stability limit. If limit is detected, the order is reduced. Default is off"""
 	ret = cvodes.CVodeSetStabLimDet(cvodememobj.obj, stldet)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetStabLimDet() failed with flag %i"%(ret))
@@ -400,7 +440,7 @@ cvodes.CVodeSetInitStep.argtypes = [ctypes.c_void_p, realtype]
 cvodes.CVodeSetInitStep.restype = ctypes.c_int
 
 def CVodeSetMinStep(cvodememobj, hmin):
-	"""Sets the absolute minimum of step sie allowed. Default is 0.0"""
+	"""Sets the absolute minimum of step size allowed. Default is 0.0"""
 	ret = cvodes.CVodeSetMinStep(cvodememobj.obj, hmin)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetMinStep() failed with flag %i"%(ret))
@@ -464,7 +504,7 @@ cvodes.CVodeSetIterType.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvodes.CVodeSetIterType.restype = ctypes.c_int
 
 def CVodeSetTolerances(cvodememobj, itol, reltol, abstol):
-	"""Changes the integration tolerances between calls to CVode(). Initially (re)set by CVodeMalloc()/CVodeReInit()."""
+	"""Changes the integration tolerances between calls to CVode(). Initially (re)set by CVodeMalloc()/CVodeReInit().\n\titol\tone of CV_SS, CV_SV, or CV_WF, where CV_SS indicates that both reltol and abstol are scalars, CV_SV indicates abstol is a vector which will be passed in as an NVector, and CV_WF specfied reltol and abstol will be ignored and that an error weight function will be specfied in their stead\n\treltol\ta real number indicating relative tolerance, or None in the case of CV_WF\n\tabstol\ta real number (CV_SS) or an NVector (CV_WF) indicating absolute tolerances. None is CV_WF is used."""
 	if itol == CV_SS:
 		if type(abstol) == realtype:
 			ret = cvodes.CVodeSetTolerances(cvodememobj.obj, itol, reltol, ctypes.byref(abstol))
@@ -487,7 +527,7 @@ def CVodeSetTolerances(cvodememobj, itol, reltol, abstol):
 		else:
 			raise TypeError("abstol must be None if itol is CV_WF")
 	else:
-		raise ValueError("itol must be one of CV_SS or CV_SV")
+		raise ValueError("itol must be one of CV_SS, CV_SV or CV_WF")
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetTolerances() failed with flag %i"%(ret))
 cvodes.CVodeSetTolerances.argtypes = [ctypes.c_void_p, ctypes.c_int, realtype, ctypes.c_void_p]
@@ -520,6 +560,7 @@ def CVodeMalloc(cvodememobj, func, t0, y0, itol, reltol, abstol):
 		raise ValueError("itol must be one of CV_SS or CV_SV")
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeMalloc() failed with flag %i"%(ret))
+	cvodememobj.dealloc = True
 cvodes.CVodeMalloc.argtypes = [ctypes.c_void_p, CVRhsFn, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.c_int, realtype, ctypes.c_void_p]
 cvodes.CVodeMalloc.restype = ctypes.c_int
 
@@ -717,7 +758,7 @@ cvodes.CVodeSensToggleOff.restype = ctypes.c_int
 
 def CVode(cvodememobj, tout, yout, tret, itask):
 	"""CVode integrates the ODE over an interval in t.  If itask is CV_NORMAL, then the solver integrates from its current internal t value to a point at or beyond tout, then interpolates to t = tout and returns y(tout) in the user- allocated vector yout. If itask is CV_ONE_STEP, then the solver takes one internal time step and returns in yout the value of y at the new internal time. In this case, tout is used only during the first call to CVode to determine the direction of integration and the rough scale of the t variable.  If itask is CV_NORMAL_TSTOP or CV_ONE_STEP_TSTOP, then CVode returns the solution at tstop if that comes sooner than tout or the end of the next internal step, respectively.  In any case, the time reached by the solver is placed in (*tret). The user is responsible for allocating the memory for this value.\n\n\tcvodememobj\ta CVodeMemObj as returned by CVodeCreate()\n\ttout\t\tthe next time at which a computed solution is desired. [float]\n\tyout\t\tthe computed solution vector. In CV_NORMAL mode with no errors and no roots found, yout=y(tout). [NVector]\n\ttret\t\tis set to the time reached by the solver [realtype]\n\titask\t\tis one of CV_NORMAL, CV_ONE_STEP, CV_NORMAL_TSTOP, or CV_ONE_STEP_TSTOP. See CVODES documentation for more details.\n\nHere is a brief description of each possible return value:\n
-	CV_SUCCESS:       CVode succeeded and no roots were found.  \n\tCV_ROOT_RETURN:   CVode succeeded, and found one or more roots. If nrtfn > 1, call CVodeGetRootInfo to see which g_i were found to have a root at (*tret).  \n\tCV_TSTOP_RETURN:  CVode succeeded and returned at tstop.  \n\tCV_MEM_NULL:      The cvode_mem argument was NULL.  \n\tCV_NO_MALLOC:     cvode_mem was not allocated.  \n\tCV_ILL_INPUT:     One of the inputs to CVode is illegal. This includes the situation when a component of the error weight vectors becomes < 0 during internal time-stepping.  It also includes the situation where a root of one of the root functions was found both at t0 and very near t0.  The ILL_INPUT flag will also be returned if the linear solver routine CV--- (called by the user after calling CVodeCreate) failed to set one of the linear solver-related fields in cvode_mem or if the linear solver's init routine failed. In any case, the user should see the printed error message for more details.  \n\tCV_TOO_MUCH_WORK: The solver took mxstep internal steps but could not reach tout. The default value for mxstep is MXSTEP_DEFAULT = 500.  \n\tCV_TOO_MUCH_ACC:  The solver could not satisfy the accuracy demanded by the user for some internal step.  \n\tCV_ERR_FAILURE:   Error test failures occurred too many times (= MXNEF = 7) during one internal time step or occurred with |h| = hmin.  \n\tCV_CONV_FAILURE:  Convergence test failures occurred too many times (= MXNCF = 10) during one internal time step or occurred with |h| = hmin.  \n\tCV_LINIT_FAIL:    The linear solver's initialization function failed.  \n\tCV_LSETUP_FAIL:   The linear solver's setup routine failed in an unrecoverable manner.  \n\tCV_LSOLVE_FAIL:   The linear solver's solve routine failed in an unrecoverable manner."""
+	CV_SUCCESS:       CVode succeeded and no roots were found.  \n\tCV_ROOT_RETURN:   CVode succeeded, and found one or more roots. If nrtfn > 1, call CVodeGetRootInfo to see which g_i were found to have a root at (*tret).  \n\tCV_TSTOP_RETURN:  CVode succeeded and returned at tstop.  \n\tCV_MEM_NULL:      The cvodes_mem argument was NULL.  \n\tCV_NO_MALLOC:     cvodes_mem was not allocated.  \n\tCV_ILL_INPUT:     One of the inputs to CVode is illegal. This includes the situation when a component of the error weight vectors becomes < 0 during internal time-stepping.  It also includes the situation where a root of one of the root functions was found both at t0 and very near t0.  The ILL_INPUT flag will also be returned if the linear solver routine CV--- (called by the user after calling CVodeCreate) failed to set one of the linear solver-related fields in cvodes_mem or if the linear solver's init routine failed. In any case, the user should see the printed error message for more details.  \n\tCV_TOO_MUCH_WORK: The solver took mxstep internal steps but could not reach tout. The default value for mxstep is MXSTEP_DEFAULT = 500.  \n\tCV_TOO_MUCH_ACC:  The solver could not satisfy the accuracy demanded by the user for some internal step.  \n\tCV_ERR_FAILURE:   Error test failures occurred too many times (= MXNEF = 7) during one internal time step or occurred with |h| = hmin.  \n\tCV_CONV_FAILURE:  Convergence test failures occurred too many times (= MXNCF = 10) during one internal time step or occurred with |h| = hmin.  \n\tCV_LINIT_FAIL:    The linear solver's initialization function failed.  \n\tCV_LSETUP_FAIL:   The linear solver's setup routine failed in an unrecoverable manner.  \n\tCV_LSOLVE_FAIL:   The linear solver's solve routine failed in an unrecoverable manner."""
 	ret = cvodes.CVode(cvodememobj.obj, tout, yout.data, tret, itask)
 	return ret
 cvodes.CVode.argtypes = [ctypes.c_void_p, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(realtype), ctypes.c_int]
@@ -918,7 +959,7 @@ def CVodeGetIntegratorStats(cvodememobj):
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeGetIntegratorStats() failed with flag %i"%(ret))
 	return (nsteps.value, nfevals.value, nlinsetups.value, netfails.value, qlast.value, qcur.value, hinused.value, hlast.value, hcur.value, tcur.value)
-cvodes.CVodeGetIntegratorStats.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_long), ctypes.POINTER(ctypes.c_long), ctypes.POINTER(ctypes.c_long), ctypes.POINTER(ctypes.c_long), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(realtype), ctypes.POINTER(realtype), ctypes.POINTER(realtype), ctypes.POINTER(realtype)]
+cvodes.CVodeGetIntegratorStats.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_long), ctypes.POINTER(ctypes.c_long), ctypes.POINTER(ctypes.c_long), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_long), ctypes.POINTER(ctypes.c_int), ctypes.POINTER(realtype), ctypes.POINTER(realtype), ctypes.POINTER(realtype), ctypes.POINTER(realtype)]
 cvodes.CVodeGetIntegratorStats.restype = ctypes.c_int
 
 def CVodeGetNumNonlinSolvIters(cvodememobj):
@@ -1626,9 +1667,9 @@ cvodes.SpbcgFree.argtypes = [SpbcgMem]
 cvodes.SpbcgFree.restype = None
 
 
-################
-# cvode_diag.h #
-################
+#################
+# cvodes_diag.h #
+#################
 
 #CVDIAG return values
 CVDIAG_SUCCESS = 0
@@ -1674,10 +1715,10 @@ def CVDiagGetNumRhsEvals(cvodememobj):
 cvodes.CVDiagGetNumRhsEvals.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_long)]
 cvodes.CVDiagGetNumRhsEvals.restype = ctypes.c_int
 
-def CVDiagGetLastFlag(cvode_mem):
+def CVDiagGetLastFlag(cvodes_mem):
 	"""CVDiagGetLastFlag returns the last error flag set by any of the CVDIAG interface functions."""
 	retval = ctypes.c_int(0)
-	ret = cvodes.CVDiagGetLastFlag(cvode_mem, ctypes.byref(retval))
+	ret = cvodes.CVDiagGetLastFlag(cvodes_mem, ctypes.byref(retval))
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVDiagGetLastFlag() failed with flag %i"%(ret))
 	return retval
@@ -1691,7 +1732,7 @@ cvodes.CVDiagGetReturnFlagName.argtypes = [ctypes.c_int]
 cvodes.CVDiagGetReturnFlagName.restype = ctypes.c_char_p
 
 def CVDiagB(cvadj_mem):
-	"""CVDiagB links the main CVODE integrator with the CVDIAG linear solver for the backward integration."""
+	"""CVDiagB links the main CVODES integrator with the CVDIAG linear solver for the backward integration."""
 	ret = cvodes.CVDiagB(cvadj_mem)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVDiagB() failed with flag %i"%(ret))
@@ -1699,9 +1740,9 @@ cvodes.CVDiagB.argtypes = [ctypes.c_void_p]
 cvodes.CVDiagB.restype = ctypes.c_int
 
 
-##################
-# cvode_bbdpre.h #
-##################
+###################
+# cvodes_bbdpre.h #
+###################
 
 CVBBDPRE_SUCCESS = 0
 CVBBDPRE_PDATA_NULL = -11
@@ -1743,7 +1784,7 @@ cvodes.CVBBDPrecAlloc.argtypes = [ctypes.c_void_p, ctypes.c_long, ctypes.c_long,
 cvodes.CVBBDPrecAlloc.restype = ctypes.c_void_p
 
 def CVBBDSptfqmr(cvodememobj, pretype, maxl, bbd_data):
-	"""CVBBDSptfqmr links the CVBBDPRE preconditioner to the CVSPTFQMR linear solver. It performs the following actions: \n\t1) Calls the CVSPTFQMR specification routine and attaches the CVSPTFQMR linear solver to the integrator memory \n\t2) Sets the preconditioner data structure for CVSPTFQMR \n\t3) Sets the preconditioner setup routine for CVSPTFQMR \n\t4) Sets the preconditioner solve routine for CVSPTFQMR \n\nIts first 3 arguments are the same as for CVSptfqmr (see cvsptfqmr.h). The last argument is the pointer to the CVBBDPRE memory block returned by CVBBDPrecAlloc. Note that the user need not call CVSptfqmr.  \n\nPossible return values are: \n\tCVSPILS_SUCCESS      if successful \n\tCVSPILS_MEM_NULL     if the cvode memory was NULL \n\tCVSPILS_LMEM_NULL    if the cvsptfqmr memory was NULL \n\tCVSPILS_MEM_FAIL     if there was a memory allocation failure \n\tCVSPILS_ILL_INPUT    if a required vector operation is missing \n\tCVBBDPRE_PDATA_NULL  if the bbd_data was NULL"""
+	"""CVBBDSptfqmr links the CVBBDPRE preconditioner to the CVSPTFQMR linear solver. It performs the following actions: \n\t1) Calls the CVSPTFQMR specification routine and attaches the CVSPTFQMR linear solver to the integrator memory \n\t2) Sets the preconditioner data structure for CVSPTFQMR \n\t3) Sets the preconditioner setup routine for CVSPTFQMR \n\t4) Sets the preconditioner solve routine for CVSPTFQMR \n\nIts first 3 arguments are the same as for CVSptfqmr (see cvsptfqmr.h). The last argument is the pointer to the CVBBDPRE memory block returned by CVBBDPrecAlloc. Note that the user need not call CVSptfqmr.  \n\nPossible return values are: \n\tCVSPILS_SUCCESS      if successful \n\tCVSPILS_MEM_NULL     if the cvodes memory was NULL \n\tCVSPILS_LMEM_NULL    if the cvsptfqmr memory was NULL \n\tCVSPILS_MEM_FAIL     if there was a memory allocation failure \n\tCVSPILS_ILL_INPUT    if a required vector operation is missing \n\tCVBBDPRE_PDATA_NULL  if the bbd_data was NULL"""
 	ret = cvodes.CVBBDSptfqmr(cvodememobj.obj, pretype, maxl, bbd_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBBDSptfqmr() failed with flag %i"%(ret))
@@ -1871,9 +1912,9 @@ def CVBBDPrecFreeB(cvadj_mem):
 cvodes.CVBBDPrecFreeB.argtypes = [ctypes.c_void_p]
 cvodes.CVBBDPrecFreeB.restype = None
 
-###################
-# cvode_bandpre.h #
-###################
+####################
+# cvodes_bandpre.h #
+####################
 
 CVBANDPRE_SUCCESS = 0
 CVBANDPRE_PDATA_NULL = -11
@@ -1985,9 +2026,9 @@ def CVBandPrecFreeB(cvadj_mem):
 cvodes.CVBandPrecFreeB.argtypes = [ctypes.c_void_p]
 cvodes.CVBandPrecFreeB.restype = None
 
-################
-# cvode_band.h #
-################
+#################
+# cvodes_band.h #
+#################
 
 CVB_MSBJ = 50
 CVB_DGMAX = 0.2
@@ -2214,7 +2255,7 @@ def WrapCallbackCVBandJacFn(func):
 	return tmp
 
 def CVBand(cvodememobj, N, mupper, mlower):
-	"""A call to the CVBand function links the main CVODE integrator with the CVBAND linear solver.\n\tcvodememobj\ta CvodeMemObj as returned by CvodeCreate() \n\tN\t\tthe size of the ODE system.  \n\tmupper\t\tthe upper bandwidth of the band Jacobian approximation.\n\tmlower\t\tthe lower bandwidth of the band Jacobian approximation."""
+	"""A call to the CVBand function links the main CVODES integrator with the CVBAND linear solver.\n\tcvodememobj\ta CvodeMemObj as returned by CvodeCreate() \n\tN\t\tthe size of the ODE system.  \n\tmupper\t\tthe upper bandwidth of the band Jacobian approximation.\n\tmlower\t\tthe lower bandwidth of the band Jacobian approximation."""
 	ret = cvodes.CVBand(cvodememobj.obj, N, mupper, mlower)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBand() failed with flag %i"%(ret))
@@ -2287,7 +2328,7 @@ def WrapCallbackCVBandJacFnB(func):
 	return tmp
 
 def CVBandB(cvadj_mem, nB, mupperB, mlowerB):
-	"""CVBandB links the main CVODE integrator with the CVBAND linear solver for the backward integration."""
+	"""CVBandB links the main CVODES integrator with the CVBAND linear solver for the backward integration."""
 	ret = cvodes.CVBandB(cvadj_mem, nB, mupperB, mlowerB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBandB() failed with flag %i"%(ret))
@@ -2301,9 +2342,9 @@ def CVBandSetJacFnB(cvadj_mem, bjacB, jac_dataB):
 cvodes.CVBandSetJacFnB.argtypes = [ctypes.c_void_p, CVBandJacFnB, ctypes.c_void_p]
 cvodes.CVBandSetJacFnB.restype = ctypes.c_int
 
-#################
-# cvode_dense.h #
-#################
+##################
+# cvodes_dense.h #
+##################
 
 class _DenseMat(ctypes.Structure):
 	_fields_ = [("M", ctypes.c_long), ("N", ctypes.c_long), ("data", ctypes.POINTER(ctypes.POINTER(realtype)))]
@@ -2457,14 +2498,14 @@ def WrapCallbackCVDenseJacFn(func):
 	"""Creates a wrapper around a python callable object, that can be used as a callback for the Jacobian function. Jacobian functions for dense matrices take N (int = dimension of matrix), J (DenseMat = Jacobian Matrix), t (float = time step), y (NVector), fy (NVector), jac_data (c_void_p), tmp1 (NVector), tmp2 (NVector), and tmp3 (NVector) as parameters, and return an integer."""
 	if func == None:
 		return ctypes.cast(None, CVDenseJacFn)
-	exec 'def __CallbackInterface_%s(N, J, t, y, fy, jac_data, tmp1, tmp2, tmp3):\n\treturn __ActualCallback[%i](N, DenseMat(J), t, NVector(y), NVector(fy), jac_data, NVector(tmp1), NVector(tmp2), NVector(tmp3))'%(func.func_name, len(__ActualCallback))
+	exec 'def __CallbackInterface_%s(N, J, t, y, fy, jac_data, tmp1, tmp2, tmp3):\n\treturn __ActualCallback[%i](N, DenseMat(J), t, nvecserial.NVector(y), nvecserial.NVector(fy), jac_data, nvecserial.NVector(tmp1), nvecserial.NVector(tmp2), nvecserial.NVector(tmp3))'%(func.func_name, len(__ActualCallback))
 	__ActualCallback.append(func)
 	tmp = CVDenseJacFn(eval("__CallbackInterface_%s"%(func.func_name)))
 	__Callback.append(tmp)
 	return tmp
 
 def CVDense(cvodememobj, N):
-	"""A call to the CVDense function links the main CVODE integrator with the CVDENSE linear solver.\n\tcvodememobj\ta CvodeMemObj as returned by CvodeCreate()\n\tN\t\tthe size of the ODE system."""
+	"""A call to the CVDense function links the main CVODES integrator with the CVDENSE linear solver.\n\tcvodememobj\ta CvodeMemObj as returned by CvodeCreate()\n\tN\t\tthe size of the ODE system."""
 	ret = cvodes.CVDense(cvodememobj.obj, N)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVDense() failed with flag %i"%(ret))
@@ -2537,7 +2578,7 @@ def WrapCallbackCVDenseJacFnB(func):
 	return tmp
 
 def CVDenseB(cvadj_mem, nB):
-	"""CVDenseB links the main CVODE integrator with the CVDENSE linear solver for the backward integration."""
+	"""CVDenseB links the main CVODES integrator with the CVDENSE linear solver for the backward integration."""
 	ret = cvodes.CVDenseB(cvadj_mem, nB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVDenseB() failed with flag %i"%(ret))
@@ -2551,9 +2592,9 @@ def CVDenseSetJacFnB(cvadj_mem, djacB, jac_dataB):
 cvodes.CVDenseSetJacFnB.argtypes = [ctypes.c_void_p, CVDenseJacFnB, ctypes.c_void_p]
 cvodes.CVDenseSetJacFnB.restype = ctypes.c_int
 
-#################
-# cvode_spils.h #
-#################
+##################
+# cvodes_spils.h #
+##################
 
 CVSPILS_MAXL = 5
 CVSPILS_MSBPRE = 50
@@ -2810,12 +2851,12 @@ def CVSpilsSetJacTimesVecFnB(cvadj_mem, jtimesB, jac_dataB):
 cvodes.CVSpilsSetJacTimesVecFnB.argtypes = [ctypes.c_void_p, CVSpilsJacTimesVecFnB, ctypes.c_void_p]
 cvodes.CVSpilsSetJacTimesVecFnB.restype = ctypes.c_int
 
-##################
-# cvode_spbcgs.h #
-##################
+###################
+# cvodes_spbcgs.h #
+###################
 
 def CVSpbcg(cvodememobj, pretype, maxl):
-	"""A call to the CVSpbcg function links the main CVODE integrator with the CVSPBCG linear solver.\n\tcvodememobj\ta CvodeMemObj as returned by CvodeCreate()\n\tpretype\t\tis the type of user preconditioning to be done.  This must be one of the four enumeration constants PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined in iterative.h. These correspond to no preconditioning, left preconditioning only, right preconditioning only, and both left and right preconditioning, respectively.\n\tmaxl\t\tis the maximum Krylov dimension. This is an optional input to the CVSPBCG solver. Pass 0 to use the default value CVSPBCG_MAXL=5."""
+	"""A call to the CVSpbcg function links the main CVODES integrator with the CVSPBCG linear solver.\n\tcvodememobj\ta CvodeMemObj as returned by CvodeCreate()\n\tpretype\t\tis the type of user preconditioning to be done.  This must be one of the four enumeration constants PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined in iterative.h. These correspond to no preconditioning, left preconditioning only, right preconditioning only, and both left and right preconditioning, respectively.\n\tmaxl\t\tis the maximum Krylov dimension. This is an optional input to the CVSPBCG solver. Pass 0 to use the default value CVSPBCG_MAXL=5."""
 	ret = cvodes.CVSpbcg(cvodememobj.obj, pretype, maxl)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpbcg() failed with flag %i"%(ret))
@@ -2829,12 +2870,12 @@ def CVSpbcgB(cvadj_mem, pretypeB, maxlB):
 cvodes.CVSpbcgB.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVSpbcgB.restype = ctypes.c_int
 
-#################
-# cvode_spgmr.h #
-#################
+##################
+# cvodes_spgmr.h #
+##################
 
 def CVSpgmr(cvodememobj, pretype, maxl):
-	"""A call to the CVSpgmr function links the main CVODE integrator with the CVSPGMR linear solver.\n\tcvodememobj\ta CvodeMemObj as returned by CvodeCreate()\n\tpretype\t\tis the type of user preconditioning to be done.  This must be one of the four enumeration constants PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined in sundials_iterative.h.  These correspond to no preconditioning, left preconditioning only, right preconditioning only, and both left and right preconditioning, respectively.\n\tmaxl\t\tis the maximum Krylov dimension. This is an optional input to the CVSPGMR solver. Pass 0 to use the default value CVSPGMR_MAXL=5."""
+	"""A call to the CVSpgmr function links the main CVODES integrator with the CVSPGMR linear solver.\n\tcvodememobj\ta CvodeMemObj as returned by CvodeCreate()\n\tpretype\t\tis the type of user preconditioning to be done.  This must be one of the four enumeration constants PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined in sundials_iterative.h.  These correspond to no preconditioning, left preconditioning only, right preconditioning only, and both left and right preconditioning, respectively.\n\tmaxl\t\tis the maximum Krylov dimension. This is an optional input to the CVSPGMR solver. Pass 0 to use the default value CVSPGMR_MAXL=5."""
 	ret = cvodes.CVSpgmr(cvodememobj.obj, pretype, maxl)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpgmr() failed with flag %i"%(ret))
@@ -2848,12 +2889,12 @@ def CVSpgmrB(cvadj_mem, pretypeB, maxlB):
 cvodes.CVSpgmrB.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVSpgmrB.restype = ctypes.c_int
 
-###################
-# cvode_sptfqmr.h #
-###################
+####################
+# cvodes_sptfqmr.h #
+####################
 
 def CVSptfqmr(cvodememobj, pretype, maxl):
-	"""A call to the CVSptfqmr function links the main CVODE integrator with the CVSPTFQMR linear solver.\n\tcvodememobj\ta CvodeMemObj as returned by CvodeCreate()\n\tpretype\t\tis the type of user preconditioning to be done.  This must be one of the four enumeration constants PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined in iterative.h. These correspond to no preconditioning, left preconditioning only, right preconditioning only, and both left and right preconditioning, respectively.\n\tmaxl\t\tis the maximum Krylov dimension. This is an optional input to the CVSPTFQMR solver. Pass 0 to use the default value CVSPILS_MAXL=5."""
+	"""A call to the CVSptfqmr function links the main CVODES integrator with the CVSPTFQMR linear solver.\n\tcvodememobj\ta CvodeMemObj as returned by CvodeCreate()\n\tpretype\t\tis the type of user preconditioning to be done.  This must be one of the four enumeration constants PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined in iterative.h. These correspond to no preconditioning, left preconditioning only, right preconditioning only, and both left and right preconditioning, respectively.\n\tmaxl\t\tis the maximum Krylov dimension. This is an optional input to the CVSPTFQMR solver. Pass 0 to use the default value CVSPILS_MAXL=5."""
 	ret = cvodes.CVSptfqmr(cvodememobj.obj, pretype, maxl)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSptfqmr() failed with flag %i"%(ret))

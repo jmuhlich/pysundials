@@ -1,3 +1,37 @@
+#nvecserial.py is part of the PySUNDIALS package, and is released under the
+#following terms and conditions.
+
+#Copyright (c) 2007, James Dominy, Brett Olivier, Jan Hendrik Hofmeyr, Johann Rohwer
+#All rights reserved.
+#
+#Redistribution and use in source and binary forms, with or without
+#modification, are permitted provided that the following conditions are met:
+#
+#1. Redistributions of source code must retain the above copyright notice,
+#   this list of conditions and the following disclaimer.
+#2. Redistributions in binary form must reproduce the above copyright
+#   notice, this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+#3. Neither the name of the <ORGANIZATION> nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+#THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+#LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#POSSIBILITY OF SUCH DAMAGE.
+
+"""Python bindings for the serial NVector type
+
+This module exposes two classes NVector and NVectorArray"""
+
 import ctypes
 import sundials_core
 import math
@@ -68,9 +102,9 @@ nvecserial.N_VMinQuotient_Serial.argtypes = [PVector, PVector]
 nvecserial.N_VMinQuotient_Serial.restype = realtype
 
 class NVector(object):
-	"""The NVector object provides a convenient wrapper around the SUNDIALS NVector structure.\nIt can be indexed or sliced like any other python sequenece, and\n like other python sequences does not provide original object return. In\naddition, many vector operations are implemented."""
+	"""The NVector object provides a convenient wrapper around the SUNDIALS NVector structure. It can be indexed or sliced like any other python sequenece, and operations on NVectors return new object, not modifying the original operands. A complete set of vector operations are implemented, as operator overloads where intuitive."""
 	def __init__(self, vector):
-		"""NVector.__init__(self, vector) -> NVector\nvector may be a list, NVector, or numpy ndarray of appropriate type"""
+		"""NVector.__init__(self, vector) -> NVector; vector may be an NVector, numpy ndarray of appropriate type, or any python seqenece of real numbers\n\nAdditionally, vector may be of the special type LP__NVector, which is a ctypes pointer to a C _NVector structure, in which case new memory is not allocated for the NVector, but only the wrapping python NVector object is created around the same underlying _NVector. This second use exists primarily for internal PySUNDIALS use. Use with care."""
 		if type(vector) in [list, NVector]:
 			self.length = len(vector)
 			self.data = nvecserial.N_VNew_Serial(len(vector))
@@ -281,7 +315,7 @@ class NVector(object):
 		return ret
 
 	def addressof(self, index = 0):
-		"""Returns the address of a particular realtype of index 'index' from within\nthe NVector's actual data array. Useful for passing a pointer to a partiular\nportion of the NVector."""
+		"""Returns the address of a particular realtype of index 'index' from within the NVector's actual data array. Useful for passing a pointer to a partiular portion of the NVector."""
 		return ctypes.addressof(self.data.contents.content.contents.data.contents)+(index * ctypes.sizeof(realtype))
 	
 	def ptrto(self, index = 0):
@@ -415,8 +449,9 @@ class NVector(object):
 		return nvecserial.N_VMinQuotient_Serial(self.data, v.data)
 
 class NVectorArray(object):
-	"""A wrapper object around NVectorArray's."""
+	"""A wrapper around the 'array of NVectors' structure used for sensitivity analysis. Individual elements of the array are returned as python NVector objects."""
 	def __init__(self, vector_init):
+		"""NVectorArray.__init__(self, vector_init) -> NVectorArray; vector_init must be a python seqence of python sequences of real numbers.\n\nNB: if given a sequence of NVector objects, the internal elements of the array returned are copies of the original NVector objects."""
 		self.length = len(vector_init)
 		self.data = []
 		for v in vector_init:
@@ -426,12 +461,15 @@ class NVectorArray(object):
 			self.cdata[i] = self.data[i].data
 	
 	def __len__(self):
+		"""x.__len__() <==> len(x)"""
 		return self.length
 	
 	def __getitem__(self, index):
+		"""x.__getitem__(y) <==> x[y]; x[y] is an NVector object"""
 		return self.data[index]
 	
 	def __repr__(self):
+		"""x.__repr__() <==> repr(x)"""
 		ret = "["
 		for row in range(self.length):
 			ret += self.data[row].__repr__()
