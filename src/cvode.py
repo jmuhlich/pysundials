@@ -1260,7 +1260,7 @@ cvode.SpbcgSolve.argtypes = [SpbcgMem, ctypes.c_void_p, ctypes.POINTER(nvecseria
 cvode.SpbcgSolve.restype = ctypes.c_int
 
 def SpbcgFree(mem):
-	"""Deallocates any memory allocated implicitly by Spbcg 
+	"""Deallocates any memory allocated implicitly by Spbcg"""
 	ret = cvode.SpbcgFree(mem)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: SpbcgFree() failed with flag %i"%(ret))
@@ -1303,7 +1303,8 @@ def CVDiagGetWorkSpace(cvodememobj):
 		raise AssertionError("SUNDIALS ERROR: CVDiagGetWorkSpace() failed with flag %i"%(ret))
 	return (lenrwLS.value, leniwLS.value)
 cvode.CVDiagGetWorkSpace.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_long), ctypes.POINTER(ctypes.c_long)]
-cvode.CVDiagGetWorkSpace.restype = ctypes.c_intw
+cvode.CVDiagGetWorkSpace.restype = ctypes.c_int
+
 def CVDiagGetNumRhsEvals(cvodememobj):
 	"""Returns the number of calls to the user f routine due to finite difference Jacobian evaluation.
 	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
@@ -2084,8 +2085,7 @@ def WrapCallbackCVDenseJacFn(func):
 	"""Creates a wrapper around a python callable object, that can be used as a callback for the Jacobian function. Jacobian functions for dense matrices take N (int = dimension of matrix), J (DenseMat = Jacobian Matrix), t (float = time step), y (NVector), fy (NVector), jac_data (c_void_p), tmp1 (NVector), tmp2 (NVector), and tmp3 (NVector) as parameters, and return an integer."""
 	if func == None:
 		return ctypes.cast(None, CVDenseJacFn)
-	exec 'def __CallbackInterface_%s(N, J, t, y, fy, jac_data, tmp1, tmp2, tmp3):
-	return __ActualCallback[%i](N, DenseMat(J), t, nvecserial.NVector(y), nvecserial.NVector(fy), jac_data, nvecserial.NVector(tmp1), nvecserial.NVector(tmp2), nvecserial.NVector(tmp3))'%(func.func_name, len(__ActualCallback))
+	exec 'def __CallbackInterface_%s(N, J, t, y, fy, jac_data, tmp1, tmp2, tmp3):\n\treturn __ActualCallback[%i](N, DenseMat(J), t, nvecserial.NVector(y), nvecserial.NVector(fy), jac_data, nvecserial.NVector(tmp1), nvecserial.NVector(tmp2), nvecserial.NVector(tmp3))'%(func.func_name, len(__ActualCallback))
 	__ActualCallback.append(func)
 	tmp = CVDenseJacFn(eval("__CallbackInterface_%s"%(func.func_name)))
 	__Callback.append(tmp)
