@@ -1260,6 +1260,7 @@ cvode.SpbcgSolve.argtypes = [SpbcgMem, ctypes.c_void_p, ctypes.POINTER(nvecseria
 cvode.SpbcgSolve.restype = ctypes.c_int
 
 def SpbcgFree(mem):
+	"""Deallocates any memory allocated implicitly by Spbcg 
 	ret = cvode.SpbcgFree(mem)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: SpbcgFree() failed with flag %i"%(ret))
@@ -1723,8 +1724,7 @@ class BandMat(object):
 					ret += ("%-"+str(widest[j])+".4f  ")%(0.0)
 				else:
 					ret += ("%-"+str(widest[j])+".4f  ")%(self.data.contents.data[j][i-j+self.smu])
-			ret += "
-"
+			ret += "\n"
 		return ret
 
 	def __del__(self):
