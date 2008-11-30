@@ -42,6 +42,7 @@ realtype = sundials_core.realtype
 UNIT_ROUNDOFF = sundials_core.UNIT_ROUNDOFF
 
 if numpy_imported:
+	numpy = sundials_core.numpy
 	numpy_ndarray = sundials_core.numpy_ndarray
 	numpyrealtype = sundials_core.numpyrealtype
 
@@ -321,7 +322,16 @@ class NVector(object):
 	def ptrto(self, index = 0):
 		return ctypes.pointer(realtype.from_address(self.addressof(index)))
 
-	def inverted(self): #element wise 1/x
+	def asarray(self):
+		"""Returns a numpy array object which shares the same memory as the NVector, i.e. changes to one are reflected in the other."""
+		if numpy_imported:
+			ret = numpy.empty((1, self.length), numpyrealtype)
+			ret.data = sundials_core.from_memory(self.data.contents.content.contents.data, ret.nbytes)
+			return ret
+		else:
+			raise AssertionError("Cannot construct a numpy array if numpy is not avialable")
+
+	def __invert__(self): #element wise 1/x
 		"""x.__invert__() <==> 1/x (Element wise 1/x)"""
 		ret = NVector(self)
 		if nvecserial.N_VInvTest_Serial(self.data, ret.data) == 1:

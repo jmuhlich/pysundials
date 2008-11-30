@@ -103,6 +103,8 @@ try:
 	import numpy
 	numpy_imported = True
 	numpy_ndarray = numpy.ndarray
+	from_memory = ctypes.pythonapi.PyBuffer_FromReadWriteMemory
+	from_memory.restype = ctypes.py_object
 except:
 	numpy_imported = False
 
