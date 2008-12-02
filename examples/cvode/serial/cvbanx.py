@@ -9,15 +9,10 @@ class userdata(ctypes.Structure):
 	_fields_ = [("dx", cvode.realtype), ("dy", cvode.realtype), ("hdcoef", cvode.realtype), ("hacoef", cvode.realtype), ("vdcoef", cvode.realtype)]
 
 def f(t, u, udot, f_data):
-	#print "u:"
-	#for s in u:
-	#	print "%11.8lf"%s
-	#print
 	data = ctypes.cast(f_data, ctypes.POINTER(userdata))
 	hordc = data.contents.hdcoef
 	horac = data.contents.hacoef
 	verdc = data.contents.vdcoef
-	#print hordc, horac, verdc
 	
 	for j in range(5):
 		for i in range(10):
@@ -48,10 +43,6 @@ def f(t, u, udot, f_data):
 			vdiff = verdc*(uup - 2.0*uij + udn)
 			udot[j+(i*5)] = hdiff + hadv + vdiff
 	
-	#print "udot:"
-	#for s in udot:
-	#	print "%11.8lf"%s
-	#print
 	return 0
 
 def Jac(N, mu, ml, J, t, u, fu, jac_data, tmp1, tmp2, tmp3):
@@ -78,7 +69,6 @@ def Jac(N, mu, ml, J, t, u, fu, jac_data, tmp1, tmp2, tmp3):
 
 	return 0
 
-#begin main code
 u = [0]*50
 
 for j in range(5):
@@ -100,8 +90,6 @@ data.hacoef = 0.5/(2.0*data.dx)
 data.vdcoef = 1.0/(data.dy**2)
 
 cvode_mem = cvode.CVodeCreate(cvode.CV_BDF, cvode.CV_NEWTON);
-#for s in u:
-#	print "%11.8lf"%s
 cvode.CVodeMalloc(cvode_mem, f, 0.0, u, cvode.CV_SS, reltol, abstol)
 cvode.CVodeSetFdata(cvode_mem, ctypes.pointer(data));
 cvode.CVBand(cvode_mem, 50, 5, 5);

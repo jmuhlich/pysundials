@@ -109,12 +109,15 @@ class NVector(object):
 		if type(vector) in [list, NVector]:
 			self.length = len(vector)
 			self.data = nvecserial.N_VNew_Serial(len(vector))
+			self.cdata = self.data.contents.content.contents.data
 			self.copy = False
 			for v in range(len(vector)):
-				self.data.contents.content.contents.data[v] = vector[v]
+				#self.data.contents.content.contents.data[v] = vector[v]
+				self.cdata[v] = vector[v]
 		elif type(vector).__name__ == "LP__NVector":
 			self.length = vector.contents.content.contents.length
 			self.data = vector
+			self.cdata = self.data.contents.content.contents.data
 			self.copy = True
 		elif numpy_imported and type(vector) == numpy_ndarray:
 			if vector.ndim > 1:
@@ -123,6 +126,7 @@ class NVector(object):
 				raise TypeError("Cannot create NVector from ndarray of non-matching dtype (%s)"%vector.dtype)
 			self.length = len(vector)
 			self.data = nvecserial.N_VNew_Serial(len(vector))
+			self.cdata = self.data.contents.content.contents.data
 			self.copy = False
 			ctypes.memmove(self.addressof(), vector.ctypes.data, ctypes.sizeof(realtype)* self.length)
 		else:
@@ -132,13 +136,15 @@ class NVector(object):
 		"""x.__getitem__(y) <==> x[y]"""
 		if (index < 0) or (index >= self.length):
 			raise IndexError("Vector index out of bounds")
-		return self.data.contents.content.contents.data[index]
+		#return self.data.contents.content.contents.data[index]
+		return self.cdata[index]
 
 	def __setitem__(self, index, value):
 		"""x.__setitem__(i, y) <==> x[i] = y"""
 		if (index < 0) or (index >= self.length):
 			raise IndexError("Vector index out of bounds")
-		self.data.contents.content.contents.data[index] = value
+		#self.data.contents.content.contents.data[index] = value
+		self.cdata[index] = value
 
 	def __getslice__(self, i, j):
 		"""x.__getslice__(i, j) <==> x[i:j]"""
@@ -179,8 +185,10 @@ class NVector(object):
 		"""x.__repr__() <==> repr(x)"""
 		s = "["
 		for e in range(self.length-1):
-			s += repr(self.data.contents.content.contents.data[e]) + ", "
-		s += repr(self.data.contents.content.contents.data[self.length-1]) + "]"
+			#s += repr(self.data.contents.content.contents.data[e]) + ", "
+			s += repr(self.cdata[e]) + ", "
+		#s += repr(self.data.contents.content.contents.data[self.length-1]) + "]"
+		s += repr(self.cdata[self.length-1]) + "]"
 		return s
 	
 	def __neg__(self): #unary element wise negation
@@ -317,7 +325,8 @@ class NVector(object):
 
 	def addressof(self, index = 0):
 		"""Returns the address of a particular realtype of index 'index' from within the NVector's actual data array. Useful for passing a pointer to a partiular portion of the NVector."""
-		return ctypes.addressof(self.data.contents.content.contents.data.contents)+(index * ctypes.sizeof(realtype))
+		#return ctypes.addressof(self.data.contents.content.contents.data.contents)+(index * ctypes.sizeof(realtype))
+		return ctypes.addressof(self.cdata.contents)+(index * ctypes.sizeof(realtype))
 	
 	def ptrto(self, index = 0):
 		return ctypes.pointer(realtype.from_address(self.addressof(index)))
@@ -326,7 +335,8 @@ class NVector(object):
 		"""Returns a numpy array object which shares the same memory as the NVector, i.e. changes to one are reflected in the other."""
 		if numpy_imported:
 			ret = numpy.empty((1, self.length), numpyrealtype)
-			ret.data = sundials_core.from_memory(self.data.contents.content.contents.data, ret.nbytes)
+			#ret.data = sundials_core.from_memory(self.data.contents.content.contents.data, ret.nbytes)
+			ret.data = sundials_core.from_memory(self.cdata, ret.nbytes)
 			return ret
 		else:
 			raise AssertionError("Cannot construct a numpy array if numpy is not avialable")

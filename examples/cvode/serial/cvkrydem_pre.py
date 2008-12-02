@@ -562,7 +562,6 @@ for jpre in range(cvode.PREC_LEFT, cvode.PREC_RIGHT+1):
 		while iout <= NOUT:
 			cvode.CVode(cvode_mem, tout, c, ctypes.byref(t), cvode.CV_NORMAL)
 			PrintOutput(cvode_mem, t)
-			sys.stderr.write("t = %g\n"%(t.value))
 			if firstrun and iout % 3 == 0:
 				PrintAllSpecies(c, ns, mxns, t)
 			if tout > 0.9:
