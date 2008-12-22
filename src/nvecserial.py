@@ -334,7 +334,7 @@ class NVector(object):
 	def asarray(self):
 		"""Returns a numpy array object which shares the same memory as the NVector, i.e. changes to one are reflected in the other."""
 		if numpy_imported:
-			ret = numpy.empty((1, self.length), numpyrealtype)
+			ret = numpy.empty(self.length, numpyrealtype)
 			#ret.data = sundials_core.from_memory(self.data.contents.content.contents.data, ret.nbytes)
 			ret.data = sundials_core.from_memory(self.cdata, ret.nbytes)
 			return ret

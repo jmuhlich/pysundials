@@ -443,6 +443,9 @@ kinsol.QRsol.restype = ctypes.c_int
 #########################
 
 def denalloc(m, n):
+	"""Allocates storage for an m by n small dense matrix and returns a pointer to the newly allocated storage if successful. If the memory request cannot be satisfied, a ValueError Exception is raised.
+
+The underlying type of the dense matrix returned is a double pointer to realtype. If we allocate a dense matrix a by a = denalloc(m, n), then a[j][i] references the (i,j)-th element of the matrix a, 0 <= i < m, 0 <= j < n,  and a[j] is a pointer to the first element in the jth column of a. The location a[0] contains a pointer to m*n contiguous locations which contain the elements of a."""
 	ret = kinsol.denalloc(m, n)
 	if ret is not None:
 		return ret
@@ -452,6 +455,7 @@ kinsol.denalloc.argtypes = [ctypes.c_long, ctypes.c_long]
 kinsol.denalloc.restype = ctypes.POINTER(ctypes.POINTER(realtype))
 
 def denallocpiv(n):
+	"""Allocates an array of n long int, and returns a pointer to the first element in the array if successful, otherwise a ValueError exception is raised."""
 	ret = kinsol.denallocpiv(n)
 	if ret is not None:
 		return ret
@@ -461,46 +465,67 @@ kinsol.denallocpiv.argtypes = [ctypes.c_long]
 kinsol.denallocpiv.restype = ctypes.POINTER(ctypes.c_long)
 
 def denGETRF(a, m, n, p):
+	"""Factors the m by n dense matrix a, m>=n. It overwrites the elements of a with its LU factors and keeps track of the pivot rows chosen in the pivot array p. A successful LU factorization leaves the matrix a and the pivot array p with the following information:
+	(1) p[k] contains the row number of the pivot element chosen at the beginning of elimination step k, k=0, 1, ..., n-1.
+	(2) If the unique LU factorization of a is given by Pa = LU, where P is a permutation matrix, L is a lower trapezoidal matrix with all 1.0 on the diagonal, and U is an upper triangular matrix, then the upper triangular part of a (including its diagonal) contains U and the strictly lower trapezoidal part of a contains the multipliers, I-L.
+
+Note that for square matrices (m=n), L is unit lower triangular.
+
+denGETRF returns 0 if successful. Otherwise it encountered a zero diagonal element during the factorization. In this case it returns the column index (numbered from one) at which it encountered the zero."""
 	return kinsol.denGETRF(a, m, n, p)
 kinsol.denGETRF.argtypes = [ctypes.POINTER(ctypes.POINTER(realtype)), ctypes.c_long, ctypes.c_long, ctypes.POINTER(ctypes.c_long)]
 kinsol.denGETRF.restype = ctypes.c_long
 
 def denGETRS(a, n, p, b):
+	"""Solves the n by n linear system a*x = b. It assumes that a has been LU factored and the pivot array p has been set by a successful call to denGETRF(a,n,n,p).
+	
+denGETRS does not check whether a is square! The solution x is written into the b array."""
 	return kinsol.denGETRS(a, n, p, b)
 kinsol.denGETRS.argtypes = [ctypes.POINTER(ctypes.POINTER(realtype)), ctypes.c_long, ctypes.POINTER(ctypes.c_long), ctypes.POINTER(realtype)]
 kinsol.denGETRS.restype = None
 
 def denzero(a, m, n):
+	"""Sets all the elements of the m by n dense matrix a to be 0.0."""
 	kinsol.denzero(a, m, n)
 kinsol.denzero.argtypes = [ctypes.POINTER(ctypes.POINTER(realtype)), ctypes.c_long, ctypes.c_long]
 kinsol.denzero.restype = None
 
 def dencopy(a, b, m, n):
+	"""Copies the m by n dense matrix a into the m by n dense matrix b."""
 	kinsol.dencopy(a, b, m, n)
 kinsol.dencopy.argtypes = [ctypes.POINTER(ctypes.POINTER(realtype)), ctypes.POINTER(ctypes.POINTER(realtype)), ctypes.c_long, ctypes.c_long]
 kinsol.dencopy.restype = None
 
 def denscale(c, a, m, n):
+	"""Scales every element in the m by n dense matrix a by c."""
 	kinsol.denscale(c, a, m, n)
 kinsol.denscale.argtypes = [realtype, ctypes.POINTER(ctypes.POINTER(realtype)), ctypes.c_long, ctypes.c_long]
 kinsol.denscale.restype = None
 
 def denaddI(a, n):
+	"""Increments the diagonal elements of the dense m by n matrix a by 1.0. (a_ii <= a_ii + 1, i=1,2,..n-1.)
+	
+denaddI is typically used with square matrices.
+denaddI does NOT check for m >= n! Therefore, a segmentation fault will occur if m<n!
+"""
 	kinsol.denaddI(a, n)
 kinsol.denaddI.argtypes = [ctypes.POINTER(ctypes.POINTER(realtype)), ctypes.c_long]
 kinsol.denaddI.restype = None
 
 def denfreepiv(p):
+	"""Frees the pivot array p allocated by denallocpiv."""
 	kinsol.denfreepiv(p)
 kinsol.denfreepiv.argtypes = [ctypes.POINTER(ctypes.c_long)]
 kinsol.denfreepiv.restype = None
 
 def denfree(a):
+	"""Frees the dense matrix a allocated by denalloc."""
 	kinsol.denfree(a)
 kinsol.denfree.argtypes = [ctypes.POINTER(ctypes.POINTER(realtype))]
 kinsol.denfree.restype = None
 
 def denprint(a, m, n):
+	"""Prints the m by n dense matrix a to standard output as it would normally appear on paper. It is intended as a debugging tool with small values of m and n. The elements are printed using the %g/%lg/%Lg option. A blank line is printed before and after the matrix."""
 	kinsol.denprint(a, m, n)
 kinsol.denprint.argtypes = [ctypes.POINTER(ctypes.POINTER(realtype)), ctypes.c_long, ctypes.c_long]
 kinsol.denprint.restype = None
@@ -617,7 +642,11 @@ class _BandMatRow(object):
 class BandMat(object):
 	"""Class representing a banded matrix as a dense matrix"""
 	def __init__(self, init, mu = 0, ml = 0, smu = 0):
-		"""Instantiates a new dense representation of a banded matrix.\n\tinit\tdimension of matrix to create; always square [int]\n\tmu\twidth of portion of band above diagonal\n\tml\twidth of portion of band below diagonal\n\tsmu\tis the storage upper bandwidth, mu <= smu <= size-1.  The BandGBTRF routine writes the LU factors into the storage for A. The upper triangular factor U, however, may have an upper bandwidth as big as MIN(size-1,mu+ml) because of partial pivoting. The smu field holds the upper bandwidth allocated for A."""
+		"""Instantiates a new dense representation of a banded matrix.
+	init (int)	dimension of matrix to create; always square
+	mu (int)	width of portion of band above diagonal
+	ml (int)	width of portion of band below diagonal
+	smu (int)	is the storage upper bandwidth, mu <= smu <= size-1.  The BandGBTRF routine writes the LU factors into the storage for A. The upper triangular factor U, however, may have an upper bandwidth as big as MIN(size-1,mu+ml) because of partial pivoting. The smu field holds the upper bandwidth allocated for A."""
 		if type(init) == int:
 			self.size = init
 			self.mu = mu
@@ -666,6 +695,7 @@ class BandMat(object):
 			self.data.contents.data[j][y] = row[j]
 	
 	def __repr__(self):
+		"""x.__repr__(i, y) <==> repr(x)"""
 		widest = []
 		for j in range(self.size):
 			colw = 0
@@ -691,19 +721,35 @@ class BandMat(object):
 				pass
 
 def BandAllocMat(N, mu, ml, smu):
-	"""Allocates memory for a banded matrix. Should not be called directly, rather instatiate a BandMat object."""
+	"""Allocates memory for a banded matrix. Should not be called directly, rather instatiate a BandMat object.
+	N (int)		dimension of matrix to create; always square
+	mu (int)	width of portion of band above diagonal
+	ml (int)	width of portion of band below diagonal
+	smu (int)	is the storage upper bandwidth, mu <= smu <= size-1.  The BandGBTRF routine writes the LU factors into the storage for A. The upper triangular factor U, however, may have an upper bandwidth as big as MIN(size-1,mu+ml) because of partial pivoting. The smu field holds the upper bandwidth allocated for A."""
 	return BandMat(N, mu, ml, smu)
 kinsol.BandAllocMat.argtypes = [ctypes.c_long, ctypes.c_long, ctypes.c_long, ctypes.c_long]
 kinsol.BandAllocMat.restype = ctypes.POINTER(_BandMat)
 
 def BandAllocPiv(N):
-	"""BandAllocPiv allocates memory for pivot information to be filled in by the BandGBTRF routine during the factorization of an N by N band matrix. Returns a pointer, which should be passed as is to the [CV]BandPiv* functions.\n\tN\tthe size of the banded matrix for which to allocate pivot information space [int]"""
+	"""BandAllocPiv allocates memory for pivot information to be filled in by the BandGBTRF routine during the factorization of an N by N band matrix. Returns a pointer, which should be passed as is to the [CV]BandPiv* functions.
+	N (int)	the size of the banded matrix for which to allocate pivot information space [int]"""
 	return kinsol.BandAllocPiv(N)
 kinsol.BandAllocPiv.argtypes = [ctypes.c_int]
 kinsol.BandAllocPiv.restype = ctypes.POINTER(ctypes.c_long)
 
 def BandGBTRF(A, p):
-	"""BandGBTRF performs the LU factorization of the N by N band matrix A. This is done using standard Gaussian elimination with partial pivoting.\n\nA successful LU factorization leaves the "matrix" A and the pivot array p with the following information:\n\t1 p[k] contains the row number of the pivot element chosen at the beginning of elimination step k, k=0, 1, ..., N-1.\n\t2 If the unique LU factorization of A is given by PA = LU, where P is a permutation matrix, L is a lower triangular matrix with all 1's on the diagonal, and U is an upper triangular matrix, then the upper triangular part of A (including its diagonal) contains U and the strictly lower triangular part of A contains the multipliers, I-L.\n\nBandGBTRF returns 0 if successful. Otherwise it encountered a zero diagonal element during the factorization. In this case it returns the column index (numbered from one) at which it encountered the zero.\n\nImportant Note: A must be allocated to accommodate the increase in upper bandwidth that occurs during factorization. If mathematically, A is a band matrix with upper bandwidth mu and lower bandwidth ml, then the upper triangular factor U can have upper bandwidth as big as smu = MIN(n-1,mu+ml). The lower triangular factor L has lower bandwidth ml. Allocate A with call A = BandAllocMat(N,mu,ml,smu), where mu, ml, and smu are as defined above. The user does not have to zero the "extra" storage allocated for the purpose of factorization. This will handled by the BandGBTRF routine.  ret = kinsol.BandGBTRF(A, p)"""
+	"""BandGBTRF performs the LU factorization of the N by N band matrix A. This is done using standard Gaussian elimination with partial pivoting.
+	
+	A (BandMat)	The banded matrix to factorize
+	p (*long int)	The array of pivots
+
+A successful LU factorization leaves the "matrix" A and the pivot array p with the following information:
+	1 p[k] contains the row number of the pivot element chosen at the beginning of elimination step k, k=0, 1, ..., N-1.
+	2 If the unique LU factorization of A is given by PA = LU, where P is a permutation matrix, L is a lower triangular matrix with all 1's on the diagonal, and U is an upper triangular matrix, then the upper triangular part of A (including its diagonal) contains U and the strictly lower triangular part of A contains the multipliers, I-L.
+
+BandGBTRF returns 0 if successful. Otherwise it encountered a zero diagonal element during the factorization. In this case it returns the column index (numbered from one) at which it encountered the zero.
+
+Important Note: 'A' must be allocated to accommodate the increase in upper bandwidth that occurs during factorization. If mathematically, A is a band matrix with upper bandwidth mu and lower bandwidth ml, then the upper triangular factor U can have upper bandwidth as big as smu = MIN(n-1,mu+ml). The lower triangular factor L has lower bandwidth ml. Allocate A with call A = BandAllocMat(N,mu,ml,smu), where mu, ml, and smu are as defined above. The user does not have to zero the "extra" storage allocated for the purpose of factorization. This will handled by the BandGBTRF routine.  ret = kinsol.BandGBTRF(A, p)"""
 	ret = kinsol.BandGBTRF(A.data, p)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: BandGBTRF() failed with flag %i"%(ret))
@@ -711,52 +757,67 @@ kinsol.BandGBTRF.argtypes = [_BandMat, ctypes.POINTER(ctypes.c_long)]
 kinsol.BandGBTRF.restype = ctypes.c_long
 
 def BandGBTRS(A, p, b):
-	"""BandGBTRS solves the N-dimensional system A x = b using the LU factorization in A and the pivot information in p computed in BandGBTRF. The solution x is returned in b. This routine cannot fail if the corresponding call to BandGBTRF did not fail."""
+	"""BandGBTRS solves the N-dimensional system A x = b using the LU factorization in A and the pivot information in p computed in BandGBTRF. The solution x is returned in b. This routine cannot fail if the corresponding call to BandGBTRF did not fail.
+	A (BandMat)	The banded matrix to factorize
+	p (*long int)	The array of pivots
+	b (*realtype)	The array containing the right hand side of the system A x = b"""
+
 	ret = kinsol.BandGBTRS(A.data, p, b)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: BandGBTRS() failed with flag %i"%(ret))
-kinsol.BandGBTRS.argtypes = [_BandMat, ctypes.POINTER(ctypes.c_long), ctypes.POINTER(realtype)]
+kinsol.BandGBTRS.argtypes = [_BandMat, ctypes.POINTER(ctypes.c_long), ctypes.POINTER(realtype )]
 kinsol.BandGBTRS.restype = None
 
 def BandZero(A):
-	"""Zeroes the entire matrix\n\tA\tthe matrix [BandMat]"""
+	"""Zeroes the entire matrix
+	A (BandMat)	the matrix"""
 	kinsol.BandZero(A.data)
 kinsol.BandZero.argtypes = [_BandMat] 
 kinsol.BandZero.restype = None
 
 def BandCopy(A, B, copymu, copyml):
-	"""Copies the contents of banded matrix B into A, overwriting A's contents.\n\tA\tthe destination matrix [BandMat]\n\tB\tthe source matrix [BandMat]\n\tcopymu\tupper band width of matrices [int]\n\tcopyml\tlower band width of matrices [int]"""
+	"""Copies the contents of banded matrix B into A, overwriting A's contents.
+	A (BandMat)	the destination matrix
+	B (BandMat)	the source matrix
+	copymu (int)	upper band width of matrices
+	copyml (int)	lower band width of matrices"""
 	kinsol.BandCopy(A.data, B.data, copymu, copyml)
 kinsol.BandCopy.argtypes = [_BandMat, _BandMat, ctypes.c_long, ctypes.c_long]
 kinsol.BandCopy.restype = None
 
 def BandScale(c, A):
-	"""Scales the matrix A by c\n\tA\tthe matrix [BandMat]\n\tc\tthe scale factor [float]"""
+	"""Scales the matrix A by c
+	A (BandMat)	the matrix
+	c (float)	the scale factor"""
 	kinsol.BandScale(c, A.data)
 kinsol.BandScale.argtypes = [realtype, _BandMat]
 kinsol.BandScale.restype = None
 
 def BandAddI(A):
-	"""Adds 1.0 to the diagonal of the banded matrix A\n\tA\tthe matrix [BandMat]"""
+	"""Adds 1.0 to the diagonal of the banded matrix A
+	A (BandMat)	the matrix"""
 	kinsol.BandAddI(A.data)
 kinsol.BandAddI.argtypes = [_BandMat]
 kinsol.BandAddI.restype = None
 
 def BandFreeMat(A):
-	"""BandFreeMat frees the memory allocated by BandAllocMat for the band matrix A.\n\tA\tthe matrix [BandMat]"""
+	"""BandFreeMat frees the memory allocated by BandAllocMat for the band matrix A.
+	A (BandMat)	the matrix"""
 	kinsol.BandFreeMat(A.data)
 	del A.data
 kinsol.BandFreeMat.argtypes = [_BandMat]
 kinsol.BandFreeMat.restype = None
 
 def BandFreePiv(p):
-	"""BandFreePiv frees the pivot information storage memory p allocated by BandAllocPiv."""
+	"""BandFreePiv frees the pivot information storage memory p allocated by BandAllocPiv.
+	p (*long int)	the pivot array"""
 	kinsol.BandFreePiv(p)
 kinsol.BandFreePiv.argtypes = [ctypes.POINTER(ctypes.c_long)]
 kinsol.BandFreePiv.restype = None
 
 def BandPrint(A):
-	"""Print out the banded matix A"""
+	"""Print out the banded matix A
+	A (BandMat)	the matrix"""
 	kinsol.BandPrint(A.data)
 kinsol.BandPrint
 kinsol.BandPrint.restype = None
@@ -970,6 +1031,7 @@ class _DenseMatRow(object):
 		self.data.contents.data[j][self.i] = v
 
 	def __repr__(self):
+		"""x.__repr__(i, y) <==> repr(x)"""
 		ret = "["
 		for j in range(self.N):
 			ret += "%f"%self.data.contents.data[j][self.i]
@@ -980,7 +1042,9 @@ class _DenseMatRow(object):
 class DenseMat(object):
 	"""Class representing a dense matrix"""
 	def __init__(self, M, N = None): #M rows by N cols!!!!!
-		"""Instantiates a dense matrix object\n\tM\tnumber of rows\n\tN\tnumber of columns"""
+		"""Instantiates a dense matrix object
+	M (int)	number of rows
+	N (int)	number of columns"""
 		if type(M) == int and N is not None and type(N) == int:
 			self.M = N
 			self.N = M
@@ -1001,6 +1065,7 @@ class DenseMat(object):
 		return _DenseMatRow(self, index)
 		
 	def __repr__(self):
+		"""x.__repr__(i, y) <==> repr(x)"""
 		widest = []
 		for col in range(self.N):
 			colw = 0
@@ -1022,19 +1087,33 @@ class DenseMat(object):
 				pass
 
 def DenseAllocMat(M, N):
-	"""Allocates memory for a dense matrix. Should not be called directly, rather instatiate a DenseMat object."""
+	"""Allocates memory for a dense matrix. Should not be called directly, rather instatiate a DenseMat object.
+	M (int)	number of rows
+	N (int)	number of colums"""
 	return DenseMat(M, N)
 kinsol.DenseAllocMat.argtypes = [ctypes.c_int, ctypes.c_int]
 kinsol.DenseAllocMat.restype = ctypes.POINTER(_DenseMat)
 
 def DenseAllocPiv(N):
-	"""DenseAllocPiv allocates memory for pivot information to be filled in by the DenseGETRF routine during the factorization of an N by N dense matrix. Returns a pointer, which should be passed as is to the [CV]DensePiv* functions.\n\tN\tthe size of the dense matrix for which to allocate pivot information space [int]"""
+	"""DenseAllocPiv allocates memory for pivot information to be filled in by the DenseGETRF routine during the factorization of an N by N dense matrix. Returns a pointer, which should be passed as is to the [CV]DensePiv* functions.
+	N (int)	the size of the dense matrix for which to allocate pivot information space [int]"""
 	return kinsol.DenseAllocPiv(N)
 kinsol.DenseAllocPiv.argtypes = [ctypes.c_int]
 kinsol.DenseAllocPiv.restype = ctypes.POINTER(ctypes.c_long)
 
 def DenseGETRF(A, p):
-	"""DenseGETRF performs the LU factorization of the M by N dense matrix A. This is done using standard Gaussian elimination with partial (row) pivoting. Note that this only applies to matrices with M >= N and full column rank.\n\nA successful LU factorization leaves the matrix A and the pivot array p with the following information:\n\t1 p[k] contains the row number of the pivot element chosen at the beginning of elimination step k, k=0, 1, ..., N-1.\n\t2 If the unique LU factorization of A is given by PA = LU, where P is a permutation matrix, L is a lower trapezoidal matrix with all 1's on the diagonal, and U is an upper triangular matrix, then the upper triangular part of A (including its diagonal) contains U and the strictly lower trapezoidal part of A contains the multipliers, I-L.\n\nFor square matrices (M=N), L is unit lower triangular.\n\nDenseGETRF returns 0 if successful. Otherwise it encountered a zero diagonal element during the factorization. In this case it returns the column index (numbered from one) at which it encountered the zero."""
+	"""DenseGETRF performs the LU factorization of the M by N dense matrix A. This is done using standard Gaussian elimination with partial (row) pivoting. Note that this only applies to matrices with M >= N and full column rank.
+
+	A (DenseMat)	The matrix to factorize
+	p (*long int)	The array of pivots
+
+A successful LU factorization leaves the matrix A and the pivot array p with the following information:
+	1 p[k] contains the row number of the pivot element chosen at the beginning of elimination step k, k=0, 1, ..., N-1.
+	2 If the unique LU factorization of A is given by PA = LU, where P is a permutation matrix, L is a lower trapezoidal matrix with all 1's on the diagonal, and U is an upper triangular matrix, then the upper triangular part of A (including its diagonal) contains U and the strictly lower trapezoidal part of A contains the multipliers, I-L.
+
+For square matrices (M=N), L is unit lower triangular.
+
+DenseGETRF returns 0 if successful. Otherwise it encountered a zero diagonal element during the factorization. In this case it returns the column index (numbered from one) at which it encountered the zero."""
 	ret = kinsol.DenseGETRF(A.data, p)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: DenseGETRF() failed with flag %i"%(ret))
@@ -1042,52 +1121,68 @@ kinsol.DenseGETRF.argtypes = [_DenseMat, ctypes.POINTER(ctypes.c_long)]
 kinsol.DenseGETRF.restype = ctypes.c_long
 
 def DenseGETRS(A, p, b):
-	"""DenseGETRS solves the N-dimensional system A x = b using the LU factorization in A and the pivot information in p computed in DenseGETRF. The solution x is returned in b. This routine cannot fail if the corresponding call to DenseGETRF did not fail.\nDenseGETRS does NOT check for a squre matrix!"""
+	"""DenseGETRS solves the N-dimensional system A x = b using the LU factorization in A and the pivot information in p computed in DenseGETRF. The solution x is returned in b. This routine cannot fail if the corresponding call to DenseGETRF did not fail.
+	A (DenseMat)	The banded matrix to factorize
+	p (*long int)	The array of pivots
+	b (*realtype)	The array containing the right hand side of the system A x = b
+
+DenseGETRS does NOT check for a squre matrix!"""
 	ret = kinsol.DenseGETRS(A.data, p, b)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: DenseGETRS() failed with flag %i"%(ret))
-kinsol.DenseGETRS.argtypes = [_DenseMat, ctypes.POINTER(ctypes.c_long), ctypes.POINTER(realtype)]
+kinsol.DenseGETRS.argtypes = [_DenseMat, ctypes.POINTER(ctypes.c_long), ctypes.POINTER(realtype )]
 kinsol.DenseGETRS.restype = None
 
 def DenseZero(A):
-	"""Zeroes the entire matrix\n\tA\tthe matrix [DenseMat]"""
+	"""Zeroes the entire matrix
+	A (DenseMat)	the matrix"""
 	kinsol.DenseZero(A.data)
 kinsol.DenseZero.argtypes = [_DenseMat] 
 kinsol.DenseZero.restype = None
 
 def DenseCopy(A, B):
-	"""Copies the contents of dense matrix B into A, overwriting A's contents.\n\tA\tthe destination matrix [DenseMat]\n\tB\tthe source matrix [DenseMat]\n\tcopymu\tupper band width of matrices [int]\n\tcopyml\tlower band width of matrices [int]"""
+	"""Copies the contents of dense matrix B into A, overwriting A's contents.
+	A (DenseMat)	the destination matrix
+	B (DenseMat)	the source matrix
+	copymu (int)	upper band width of matrices
+	copyml (int)	lower band width of matrices"""
 	kinsol.DenseCopy(A.data, B.data)
 kinsol.DenseCopy.argtypes = [_DenseMat, _DenseMat]
 kinsol.DenseCopy.restype = None
 
 def DenseScale(c, A):
-	"""Scales the matrix A by c\n\tA\tthe matrix [DenseMat]\n\tc\tthe scale factor [float]"""
+	"""Scales the matrix A by c
+	A (DenseMat)	the matrix
+	c (float)	the scale factor"""
 	kinsol.DenseScale(c, A.data)
 kinsol.DenseScale.argtypes = [realtype, _DenseMat]
 kinsol.DenseScale.restype = None
 
 def DenseAddI(A):
-	"""Adds 1.0 to the diagonal of the dense matrix A\n\tA\tthe matrix [DenseMat]"""
+	"""Adds 1.0 to the diagonal of the dense matrix A
+	A (DenseMat)	the matrix"""
 	kinsol.DenseAddI(A.data)
 kinsol.DenseAddI.argtypes = [_DenseMat]
 kinsol.DenseAddI.restype = None
 
 def DenseFreeMat(A):
-	"""DenseFreeMat frees the memory allocated by DenseAllocMat for the band matrix A.\n\tA\tthe matrix [DenseMat]"""
+	"""DenseFreeMat frees the memory allocated by DenseAllocMat for the band matrix A.
+	A (DenseMat)	the matrix"""
 	kinsol.DenseFreeMat(A.data)
 	del A.data
 kinsol.DenseFreeMat.argtypes = [_DenseMat]
 kinsol.DenseFreeMat.restype = None
 
 def DenseFreePiv(p):
-	"""DenseFreePiv frees the pivot information storage memory p allocated by DenseAllocPiv."""
+	"""DenseFreePiv frees the pivot information storage memory p allocated by DenseAllocPiv.
+	p (*long int)	The array of pivots"""
 	kinsol.DenseFreePiv(p)
 kinsol.DenseFreePiv.argtypes = [ctypes.POINTER(ctypes.c_long)]
 kinsol.DenseFreePiv.restype = None
 
 def DensePrint(A):
-	"""Print out the dense matix A"""
+	"""Print out the dense matix A
+	A (DenseMat)	the matrix"""
 	kinsol.DensePrint(A.data)
 kinsol.DensePrint
 kinsol.DensePrint.restype = None

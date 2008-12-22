@@ -286,7 +286,7 @@ CVErrHandlerFn = ctypes.CFUNCTYPE(None, ctypes.c_int, ctypes.c_char_p, ctypes.c_
 def WrapCallbackCVErrHandlerFn(func):
 	"""Returns a callback wrapper around the given python callable object (func). This function should never be called directly, as it is called implicitly by any functions that specify an error handler function.
 
-The callable python object must take exactly 4 parameters, which will be passed in as
+The callable python object must take exactly 5 parameters, which will be passed in as
 	error_code (int)	the code of the error
 	module (string)		the name of the module producing the error
 	function_name (string)	the function name in which the error appeared
@@ -319,6 +319,7 @@ cvode.CVodeCreate.restype = ctypes.c_void_p
 
 def CVodeSetErrHandlerFn(cvodememobj, func,  eh_data):
 	"""Sets a user provided error handling function.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	func	is a python callable taking the parameters
 		error_code (int)	the code of the error
 		module (string)		the name of the module producing the error
@@ -335,6 +336,7 @@ cvode.CVodeSetErrHandlerFn.restype = ctypes.c_int
 
 def CVodeSetErrFile(cvodememobj, fileobj):
 	"""Sets the file where all error messages and warnings will be written if the default error handling function is used.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	fileobj (file object)	must be open for writing"""
 	ret = cvode.CVodeSetErrFile(cvodememobj.obj, sundials_core.fdopen(fileobj.fileno, fileobj.mode))
 	if ret < 0:
@@ -352,7 +354,7 @@ cvode.CVodeSetFdata.restype = ctypes.c_int
 
 def CVodeSetEwtFn(cvodememobj, func, e_data):
 	"""Sets a user provided error weight function.
-
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	func	is a python callable taking the following parameters which must return 0 in the case of success, otherwise non-zero
 		y (NVector)		the vector of current dependent variables
 		ewt (NVector)		undefined values, contents should be set to the error weights
@@ -367,6 +369,7 @@ cvode.CVodeSetEwtFn.restype = ctypes.c_int
 
 def CVodeSetMaxOrd(cvodememobj, maxord):
 	"""Sets the maximum lmm order to be used by the solver. Defaults to 12 for CV_ADAMS, and 5 for CV_BDF
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	maxord (int)"""
 	ret = cvode.CVodeSetMaxOrd(cvodememobj.obj, maxord)
 	if ret < 0:
@@ -376,6 +379,7 @@ cvode.CVodeSetMaxOrd.restype = ctypes.c_int
 
 def CVodeSetMaxNumSteps(cvodememobj, maxsteps):
 	"""Sets the maximum number of internal steps to be taken by the solver in its attempt to reach tout.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	maxsteps (int)"""
 	ret = cvode.CVodeSetMaxNumSteps(cvodememobj.obj, maxsteps)
 	if ret < 0:
@@ -385,6 +389,7 @@ cvode.CVodeSetMaxNumSteps.restype = ctypes.c_int
 
 def CVodeSetMaxHnilWarns(cvodememobj, mxhnil):
 	"""Sets the maximum number of warning messages issued by the solver that t+h==t on the next internal step. A value of -1 means no such warnings are issued. Default is 10.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	mxhnil (int)"""
 	ret = cvode.CVodeSetMaxHnilWarns(cvodememobj.obj, mxhnil)
 	if ret < 0:
@@ -394,6 +399,7 @@ cvode.CVodeSetMaxHnilWarns.restype = ctypes.c_int
 
 def CVodeSetStabLimDet(cvodememobj, stldet):
 	"""Turns stability limit detection on or off
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	stldet (int)	0 = OFF, 1 = ON
 
 When CV_BDF is used and order is 3 or greater, CVsldet is called to detect stability limit. If limit is detected, the order is reduced. Default is off"""
@@ -405,6 +411,7 @@ cvode.CVodeSetStabLimDet.restype = ctypes.c_int
 
 def CVodeSetInitStep(cvodememobj, hin):
 	"""Sets initial step size. CVODE estimates this value by default.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	hin (float)"""
 	ret = cvode.CVodeSetInitStep(cvodememobj.obj, hin)
 	if ret < 0:
@@ -414,6 +421,7 @@ cvode.CVodeSetInitStep.restype = ctypes.c_int
 
 def CVodeSetMinStep(cvodememobj, hmin):
 	"""Sets the absolute minimum of step size allowed. Default is 0.0
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	hmin (float)"""
 	ret = cvode.CVodeSetMinStep(cvodememobj.obj, hmin)
 	if ret < 0:
@@ -423,6 +431,7 @@ cvode.CVodeSetMinStep.restype = ctypes.c_int
 
 def CVodeSetMaxStep(cvodememobj, hmax):
 	"""Sets the maximum absolute value of step size allowed. Default is infinity.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	hmax (float)"""
 	ret = cvode.CVodeSetMaxStep(cvodememobj.obj, hmax)
 	if ret < 0:
@@ -432,6 +441,7 @@ cvode.CVodeSetMaxStep.restype = ctypes.c_int
 
 def CVodeSetStopTime(cvodememobj, tstop):
 	"""Sets the independent variable value past which the solution is not to proceed. Default is infinity.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	tstop (float)"""
 	ret = cvode.CVodeSetStopTime(cvodememobj.obj, tstop)
 	if ret < 0:
@@ -441,6 +451,7 @@ cvode.CVodeSetStopTime.restype = ctypes.c_int
 
 def CVodeSetMaxErrTestFails(cvodememobj, maxnef):
 	"""Sets the maximum number of error test failures in attempting one step. Default is 7.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	maxnef (int)"""
 	ret = cvode.CVodeSetMaxErrTestFails(cvodememobj.obj, maxnef)
 	if ret < 0:
@@ -450,6 +461,7 @@ cvode.CVodeSetMaxErrTestFails.restype = ctypes.c_int
 
 def CVodeSetMaxNonlinIters(cvodememobj, maxcor):
 	"""Sets the maximum number of nonlinear solver iterations at one solution. Default is 3.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	maxcor (int)"""
 	ret = cvode.CVodeSetMaxNonlinIters(cvodememobj.obj, maxcor)
 	if ret < 0:
@@ -459,6 +471,7 @@ cvode.CVodeSetMaxNonlinIters.restype = ctypes.c_int
 
 def CVodeSetMaxConvFails(cvodememobj, maxncf):
 	"""Sets the maximum number of convergence failures allowed in attempting one step. Default is 10.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	maxncf (int)"""
 	ret = cvode.CVodeSetMaxConvFails(cvodememobj.obj, maxncf)
 	if ret < 0:
@@ -468,6 +481,7 @@ cvode.CVodeSetMaxConvFails.restype = ctypes.c_int
 
 def CVodeSetNonlinConvCoef(cvodememobj, nlscoef):
 	"""Sets the coefficient in the nonlinear convergence test. Default is 0.1
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	nlscoef (float)"""
 	ret = cvode.CVodeSetNonlinConvCoef(cvodememobj.obj, nlscoef)
 	if ret < 0:
@@ -477,6 +491,7 @@ cvode.CVodeSetNonlinConvCoef.restype = ctypes.c_int
 
 def CVodeSetIterType(cvodememobj, iter):
 	"""Changes the current nonlinear iteration type. Initially set by CVodeCreate().
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	iter (int)	specifies whether functional or newton iteration will be used. Legal values are: 
 		CV_FUNCTIONAL	does not require linear algebra 
 		CV_NEWTON	requires the solution of linear systems. Requires the specification of a CVODE linear solver. (Recommended for stiff problems)."""
@@ -488,6 +503,7 @@ cvode.CVodeSetIterType.restype = ctypes.c_int
 
 def CVodeSetTolerances(cvodememobj, itol, reltol, abstol):
 	"""Changes the integration tolerances between calls to CVode(). Initially (re)set by CVodeMalloc()/CVodeReInit().
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
 	itol (int)		the type of tolerances to be used. Legal values are:
 		CV_SS	scalar relative and absolute tolerances
 		CV_SV	scalar relative tolerance and a vector of absolute tolerances.
@@ -982,7 +998,7 @@ ATimesFn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(nvecse
 def WrapCallbackATimesFn(func):
 	"""Returns a callback wrapper around the given python callable object (func). This function should never be called directly, as it is called implicitly by any functions requiring an ATimesFn function.
 
-The callable python object must take exactly 4 parameters, which will be passed in as
+The callable python object must take exactly 3 parameters, which will be passed in as
 	A_data (c_voip)	a pointer to user data as passed in by SpbcgSolve, SpgmrSolve, or SptfqmrSolve
 	v (NVector)	the vector to be multiplied by A
 	z (NVector)	undefined values, content should modified to store the result of A times v
@@ -1100,7 +1116,7 @@ cvode.QRsol.restype = ctypes.c_int
 #########################
 
 def denalloc(m, n):
-	"""Allocates storage for an m by n dense matrix and returns a pointer to the newly allocated storage if successful. If the memory request cannot be satisfied, a ValueError Exception is raised.
+	"""Allocates storage for an m by n small dense matrix and returns a pointer to the newly allocated storage if successful. If the memory request cannot be satisfied, a ValueError Exception is raised.
 
 The underlying type of the dense matrix returned is a double pointer to realtype. If we allocate a dense matrix a by a = denalloc(m, n), then a[j][i] references the (i,j)-th element of the matrix a, 0 <= i < m, 0 <= j < n,  and a[j] is a pointer to the first element in the jth column of a. The location a[0] contains a pointer to m*n contiguous locations which contain the elements of a."""
 	ret = cvode.denalloc(m, n)
@@ -1531,7 +1547,10 @@ def CVBPSptfqmr(cvodememobj, pretype, maxl, p_data):
 	2) Sets the preconditioner data structure for CVSPTFQMR 
 	3) Sets the preconditioner setup routine for CVSPTFQMR 
 	4) Sets the preconditioner solve routine for CVSPTFQMR 
-Its first 3 arguments are the same as for CVSptfqmr (see cvsptfqmr.h). The last argument is the pointer to the CVBANDPPRE memory block returned by CVBandPrecAlloc. Note that the user need not call CVSptfqmr."""
+
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	pretype (int)			the type of user preconditioning to be done. This must be one of the four enumeration constants PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH. These correspond to no preconditioning, left preconditioning only, right preconditioning only, and both left and right preconditioning, respectively.
+	maxl (int)			the maximum Krylov dimension. This is an optional input to the CVSPTFQMR solver. Pass 0 to use the default value CVSPILS_MAXL=5."""
 	ret = cvode.CVBPSptfqmr(cvodememobj.obj, pretype, maxl, p_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBPSptfqmr() failed with flag %i"%(ret))
@@ -1544,7 +1563,10 @@ def CVBPSpbcg(cvodememobj, pretype, maxl, p_data):
 	2) Sets the preconditioner data structure for CVSPBCG 
 	3) Sets the preconditioner setup routine for CVSPBCG 
 	4) Sets the preconditioner solve routine for CVSPBCG 
-Its first 3 arguments are the same as for CVSpbcg (see cvspbcg.h). The last argument is the pointer to the CVBANDPPRE memory block returned by CVBandPrecAlloc. Note that the user need not call CVSpbcg."""
+
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	pretype (int)			the type of user preconditioning to be done.  This must be one of the four enumeration constants PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined in iterative.h. These correspond to no preconditioning, left preconditioning only, right preconditioning only, and both left and right preconditioning, respectively.
+	maxl (int)			the maximum Krylov dimension. This is an optional input to the CVSPBCG solver. Pass 0 to use the default value CVSPBCG_MAXL=5."""
 	ret = cvode.CVBPSpbcg(cvodememobj.obj, pretype, maxl, p_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBPSpbcg() failed with flag %i"%(ret))
@@ -1557,7 +1579,10 @@ def CVBPSpgmr(cvodememobj, pretype, maxl, p_data):
 	2) Sets the preconditioner data structure for CVSPGMR 
 	3) Sets the preconditioner setup routine for CVSPGMR 
 	4) Sets the preconditioner solve routine for CVSPGMR 
-	Its first 3 arguments are the same as for CVSpgmr (see cvspgmr.h). The last argument is the pointer to the CVBANDPPRE memory block returned by CVBandPrecAlloc. Note that the user need not call CVSpgmr."""
+
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	pretype	(int)			the type of user preconditioning to be done.  This must be one of the four enumeration constants PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH defined in sundials_iterative.h.  These correspond to no preconditioning, left preconditioning only, right preconditioning only, and both left and right preconditioning, respectively.
+	maxl (int)			the maximum Krylov dimension. This is an optional input to the CVSPGMR solver. Pass 0 to use the default value CVSPGMR_MAXL=5."""
 	ret = cvode.CVBPSpgmr(cvodememobj.obj, pretype, maxl, p_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBPSpgmr() failed with flag %i"%(ret))
@@ -1659,10 +1684,10 @@ class BandMat(object):
 	"""Class representing a banded matrix as a dense matrix"""
 	def __init__(self, init, mu = 0, ml = 0, smu = 0):
 		"""Instantiates a new dense representation of a banded matrix.
-	init	dimension of matrix to create; always square [int]
-	mu	width of portion of band above diagonal
-	ml	width of portion of band below diagonal
-	smu	is the storage upper bandwidth, mu <= smu <= size-1.  The BandGBTRF routine writes the LU factors into the storage for A. The upper triangular factor U, however, may have an upper bandwidth as big as MIN(size-1,mu+ml) because of partial pivoting. The smu field holds the upper bandwidth allocated for A."""
+	init (int)	dimension of matrix to create; always square
+	mu (int)	width of portion of band above diagonal
+	ml (int)	width of portion of band below diagonal
+	smu (int)	is the storage upper bandwidth, mu <= smu <= size-1.  The BandGBTRF routine writes the LU factors into the storage for A. The upper triangular factor U, however, may have an upper bandwidth as big as MIN(size-1,mu+ml) because of partial pivoting. The smu field holds the upper bandwidth allocated for A."""
 		if type(init) == int:
 			self.size = init
 			self.mu = mu
@@ -1711,6 +1736,7 @@ class BandMat(object):
 			self.data.contents.data[j][y] = row[j]
 	
 	def __repr__(self):
+		"""x.__repr__(i, y) <==> repr(x)"""
 		widest = []
 		for j in range(self.size):
 			colw = 0
@@ -1736,20 +1762,27 @@ class BandMat(object):
 				pass
 
 def BandAllocMat(N, mu, ml, smu):
-	"""Allocates memory for a banded matrix. Should not be called directly, rather instatiate a BandMat object."""
+	"""Allocates memory for a banded matrix. Should not be called directly, rather instatiate a BandMat object.
+	N (int)		dimension of matrix to create; always square
+	mu (int)	width of portion of band above diagonal
+	ml (int)	width of portion of band below diagonal
+	smu (int)	is the storage upper bandwidth, mu <= smu <= size-1.  The BandGBTRF routine writes the LU factors into the storage for A. The upper triangular factor U, however, may have an upper bandwidth as big as MIN(size-1,mu+ml) because of partial pivoting. The smu field holds the upper bandwidth allocated for A."""
 	return BandMat(N, mu, ml, smu)
 cvode.BandAllocMat.argtypes = [ctypes.c_long, ctypes.c_long, ctypes.c_long, ctypes.c_long]
 cvode.BandAllocMat.restype = ctypes.POINTER(_BandMat)
 
 def BandAllocPiv(N):
 	"""BandAllocPiv allocates memory for pivot information to be filled in by the BandGBTRF routine during the factorization of an N by N band matrix. Returns a pointer, which should be passed as is to the [CV]BandPiv* functions.
-	N	the size of the banded matrix for which to allocate pivot information space [int]"""
+	N (int)	the size of the banded matrix for which to allocate pivot information space [int]"""
 	return cvode.BandAllocPiv(N)
 cvode.BandAllocPiv.argtypes = [ctypes.c_int]
 cvode.BandAllocPiv.restype = ctypes.POINTER(ctypes.c_long)
 
 def BandGBTRF(A, p):
 	"""BandGBTRF performs the LU factorization of the N by N band matrix A. This is done using standard Gaussian elimination with partial pivoting.
+	
+	A (BandMat)	The banded matrix to factorize
+	p (*long int)	The array of pivots
 
 A successful LU factorization leaves the "matrix" A and the pivot array p with the following information:
 	1 p[k] contains the row number of the pivot element chosen at the beginning of elimination step k, k=0, 1, ..., N-1.
@@ -1757,7 +1790,7 @@ A successful LU factorization leaves the "matrix" A and the pivot array p with t
 
 BandGBTRF returns 0 if successful. Otherwise it encountered a zero diagonal element during the factorization. In this case it returns the column index (numbered from one) at which it encountered the zero.
 
-Important Note: A must be allocated to accommodate the increase in upper bandwidth that occurs during factorization. If mathematically, A is a band matrix with upper bandwidth mu and lower bandwidth ml, then the upper triangular factor U can have upper bandwidth as big as smu = MIN(n-1,mu+ml). The lower triangular factor L has lower bandwidth ml. Allocate A with call A = BandAllocMat(N,mu,ml,smu), where mu, ml, and smu are as defined above. The user does not have to zero the "extra" storage allocated for the purpose of factorization. This will handled by the BandGBTRF routine.  ret = cvode.BandGBTRF(A, p)"""
+Important Note: 'A' must be allocated to accommodate the increase in upper bandwidth that occurs during factorization. If mathematically, A is a band matrix with upper bandwidth mu and lower bandwidth ml, then the upper triangular factor U can have upper bandwidth as big as smu = MIN(n-1,mu+ml). The lower triangular factor L has lower bandwidth ml. Allocate A with call A = BandAllocMat(N,mu,ml,smu), where mu, ml, and smu are as defined above. The user does not have to zero the "extra" storage allocated for the purpose of factorization. This will handled by the BandGBTRF routine.  ret = cvode.BandGBTRF(A, p)"""
 	ret = cvode.BandGBTRF(A.data, p)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: BandGBTRF() failed with flag %i"%(ret))
@@ -1765,7 +1798,11 @@ cvode.BandGBTRF.argtypes = [_BandMat, ctypes.POINTER(ctypes.c_long)]
 cvode.BandGBTRF.restype = ctypes.c_long
 
 def BandGBTRS(A, p, b):
-	"""BandGBTRS solves the N-dimensional system A x = b using the LU factorization in A and the pivot information in p computed in BandGBTRF. The solution x is returned in b. This routine cannot fail if the corresponding call to BandGBTRF did not fail."""
+	"""BandGBTRS solves the N-dimensional system A x = b using the LU factorization in A and the pivot information in p computed in BandGBTRF. The solution x is returned in b. This routine cannot fail if the corresponding call to BandGBTRF did not fail.
+	A (BandMat)	The banded matrix to factorize
+	p (*long int)	The array of pivots
+	b (*realtype)	The array containing the right hand side of the system A x = b"""
+
 	ret = cvode.BandGBTRS(A.data, p, b)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: BandGBTRS() failed with flag %i"%(ret))
@@ -1774,59 +1811,76 @@ cvode.BandGBTRS.restype = None
 
 def BandZero(A):
 	"""Zeroes the entire matrix
-	A	the matrix [BandMat]"""
+	A (BandMat)	the matrix"""
 	cvode.BandZero(A.data)
 cvode.BandZero.argtypes = [_BandMat] 
 cvode.BandZero.restype = None
 
 def BandCopy(A, B, copymu, copyml):
 	"""Copies the contents of banded matrix B into A, overwriting A's contents.
-	A	the destination matrix [BandMat]
-	B	the source matrix [BandMat]
-	copymu	upper band width of matrices [int]
-	copyml	lower band width of matrices [int]"""
+	A (BandMat)	the destination matrix
+	B (BandMat)	the source matrix
+	copymu (int)	upper band width of matrices
+	copyml (int)	lower band width of matrices"""
 	cvode.BandCopy(A.data, B.data, copymu, copyml)
 cvode.BandCopy.argtypes = [_BandMat, _BandMat, ctypes.c_long, ctypes.c_long]
 cvode.BandCopy.restype = None
 
 def BandScale(c, A):
 	"""Scales the matrix A by c
-	A	the matrix [BandMat]
-	c	the scale factor [float]"""
+	A (BandMat)	the matrix
+	c (float)	the scale factor"""
 	cvode.BandScale(c, A.data)
 cvode.BandScale.argtypes = [realtype, _BandMat]
 cvode.BandScale.restype = None
 
 def BandAddI(A):
 	"""Adds 1.0 to the diagonal of the banded matrix A
-	A	the matrix [BandMat]"""
+	A (BandMat)	the matrix"""
 	cvode.BandAddI(A.data)
 cvode.BandAddI.argtypes = [_BandMat]
 cvode.BandAddI.restype = None
 
 def BandFreeMat(A):
 	"""BandFreeMat frees the memory allocated by BandAllocMat for the band matrix A.
-	A	the matrix [BandMat]"""
+	A (BandMat)	the matrix"""
 	cvode.BandFreeMat(A.data)
 	del A.data
 cvode.BandFreeMat.argtypes = [_BandMat]
 cvode.BandFreeMat.restype = None
 
 def BandFreePiv(p):
-	"""BandFreePiv frees the pivot information storage memory p allocated by BandAllocPiv."""
+	"""BandFreePiv frees the pivot information storage memory p allocated by BandAllocPiv.
+	p (*long int)	the pivot array"""
 	cvode.BandFreePiv(p)
 cvode.BandFreePiv.argtypes = [ctypes.POINTER(ctypes.c_long)]
 cvode.BandFreePiv.restype = None
 
 def BandPrint(A):
-	"""Print out the banded matix A"""
+	"""Print out the banded matix A
+	A (BandMat)	the matrix"""
 	cvode.BandPrint(A.data)
 cvode.BandPrint
 cvode.BandPrint.restype = None
 
 CVBandJacFn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_long, ctypes.c_long, ctypes.c_long, ctypes.POINTER(_BandMat), realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVBandJacFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the Jacobian function. Jacobian functions for banded matrices take N (int = dimension of matrix), muppper (int = upper band width), mlower (int = lower band width), t (float = time step), J (BandMat = Jacobian Matrix), y (NVector), fy (NVector), jac_data (c_void_p), tmp1 (NVector), tmp2 (NVector), and tmp3 (NVector) as parameters, and return an integer."""
+	"""Returns a callback wrapper around the given python callable object (func). This function should never be called directly, as it is called implicitly by CVBandSetJac.
+
+The callable python object must take exactly 11 parameters, which will be passed in as
+	N (int)			the length of all NVector arguments
+	mupper (int)		upper band width
+	mlower (int)		lower band width
+	J (BandMat)		the matrix that will be loaded with anpproximation of the Jacobian Matrix J = (df_i/dy_j) at the point (t,y).
+	t (realtype)		the current value of the independent variable
+	y (NVector)		the current value of the dependent variable vector
+	fy (NVector)		f(t,y)
+	jac_data (c_void_p)	pointer to user data set by CVBandSetJacFunc
+	tmp1 (NVector)		preallocated temporary working space
+	tmp2 (NVector)		preallocated temporary working space
+	tmp3 (NVector)		preallocated temporary working space
+
+and must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVBandJacFn)
 	exec 'def __CallbackInterface_%s(N, mupper, mlower, J, t, y, fy, jac_data, tmp1, tmp2, tmp3):\n\treturn __ActualCallback[%i](N, mupper, mlower, BandMat(J), t, nvecserial.NVector(y), nvecserial.NVector(fy), jac_data, nvecserial.NVector(tmp1), nvecserial.NVector(tmp2), nvecserial.NVector(tmp3))'%(func.func_name, len(__ActualCallback))
@@ -1838,9 +1892,9 @@ def WrapCallbackCVBandJacFn(func):
 def CVBand(cvodememobj, N, mupper, mlower):
 	"""A call to the CVBand function links the main CVODE integrator with the CVBAND linear solver.
 	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate() 
-	N		the size of the ODE system.  
-	mupper		the upper bandwidth of the band Jacobian approximation.
-	mlower		the lower bandwidth of the band Jacobian approximation."""
+	N (int)				the size of the ODE system.  
+	mupper (int)			the upper bandwidth of the band Jacobian approximation.
+	mlower (int)			the lower bandwidth of the band Jacobian approximation."""
 	ret = cvode.CVBand(cvodememobj.obj, N, mupper, mlower)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBand() failed with flag %i"%(ret))
@@ -1850,8 +1904,19 @@ cvode.CVBand.restype = ctypes.c_int
 def CVBandSetJacFn(cvodememobj, func, jac_data):
 	"""CVBandSetJacFn sets the band Jacobian approximation function to be used.
 	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
-	func		a python callable suitable for wrapping by WrapCallbackCVBandJacFn
-	jac_data	a pointer to user data"""
+	func	is a python callable taking the parameters
+		N (int)			the length of all NVector arguments
+		mupper (int)		upper band width
+		mlower (int)		lower band width
+		J (BandMat)		the matrix that will be loaded with anpproximation of the Jacobian Matrix J = (df_i/dy_j) at the point (t,y).
+		t (realtype)		the current value of the independent variable
+		y (NVector)		the current value of the dependent variable vector
+		fy (NVector)		f(t,y)
+		jac_data (c_void_p)	pointer to user data set by CVBandSetJacFunc
+		tmp1 (NVector)		preallocated temporary working space
+		tmp2 (NVector)		preallocated temporary working space
+		tmp3 (NVector)		preallocated temporary working space
+	jac_data			a pointer to user data"""
 	ret = cvode.CVBandSetJacFn(cvodememobj.obj, WrapCallbackCVBandJacFn(func), jac_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBand() failed with flag %i"%(ret))
@@ -1871,7 +1936,8 @@ cvode.CVBandGetWorkSpace.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_lo
 cvode.CVBandGetWorkSpace.restype = ctypes.c_int
 
 def CVBandGetNumJacEvals(cvodememobj):
- 	"""CVBandGetNumGfnEvals returns the number of calls made from CVBAND to the user's jacobian function."""
+ 	"""CVBandGetNumGfnEvals returns the number of calls made from CVBAND to the user's jacobian function.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()"""
 	retval = ctypes.c_long(0)
 	ret = cvode.CVBandGetNumJacEvals(cvodememobj.obj, ctypes.byref(retval))
 	if ret < 0:
@@ -1881,7 +1947,8 @@ cvode.CVBandGetNumJacEvals.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_
 cvode.CVBandGetNumJacEvals.restype = ctypes.c_int
 
 def CVBandGetNumRhsEvals(cvodememobj):
- 	"""CVBandGetNumGfnEvals returns the number of calls made from CVBAND to the user's RHS function."""
+ 	"""CVBandGetNumGfnEvals returns the number of calls made from CVBAND to the user's RHS function.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()"""
 	retval = ctypes.c_long(0)
 	ret = cvode.CVBandGetNumRhsEvals(cvodememobj.obj, ctypes.byref(retval))
 	if ret < 0:
@@ -1937,6 +2004,7 @@ class _DenseMatRow(object):
 		self.data.contents.data[j][self.i] = v
 
 	def __repr__(self):
+		"""x.__repr__(i, y) <==> repr(x)"""
 		ret = "["
 		for j in range(self.N):
 			ret += "%f"%self.data.contents.data[j][self.i]
@@ -1948,8 +2016,8 @@ class DenseMat(object):
 	"""Class representing a dense matrix"""
 	def __init__(self, M, N = None): #M rows by N cols!!!!!
 		"""Instantiates a dense matrix object
-	M	number of rows
-	N	number of columns"""
+	M (int)	number of rows
+	N (int)	number of columns"""
 		if type(M) == int and N is not None and type(N) == int:
 			self.M = N
 			self.N = M
@@ -1970,6 +2038,7 @@ class DenseMat(object):
 		return _DenseMatRow(self, index)
 		
 	def __repr__(self):
+		"""x.__repr__(i, y) <==> repr(x)"""
 		widest = []
 		for col in range(self.N):
 			colw = 0
@@ -1991,20 +2060,25 @@ class DenseMat(object):
 				pass
 
 def DenseAllocMat(M, N):
-	"""Allocates memory for a dense matrix. Should not be called directly, rather instatiate a DenseMat object."""
+	"""Allocates memory for a dense matrix. Should not be called directly, rather instatiate a DenseMat object.
+	M (int)	number of rows
+	N (int)	number of colums"""
 	return DenseMat(M, N)
 cvode.DenseAllocMat.argtypes = [ctypes.c_int, ctypes.c_int]
 cvode.DenseAllocMat.restype = ctypes.POINTER(_DenseMat)
 
 def DenseAllocPiv(N):
 	"""DenseAllocPiv allocates memory for pivot information to be filled in by the DenseGETRF routine during the factorization of an N by N dense matrix. Returns a pointer, which should be passed as is to the [CV]DensePiv* functions.
-	N	the size of the dense matrix for which to allocate pivot information space [int]"""
+	N (int)	the size of the dense matrix for which to allocate pivot information space [int]"""
 	return cvode.DenseAllocPiv(N)
 cvode.DenseAllocPiv.argtypes = [ctypes.c_int]
 cvode.DenseAllocPiv.restype = ctypes.POINTER(ctypes.c_long)
 
 def DenseGETRF(A, p):
 	"""DenseGETRF performs the LU factorization of the M by N dense matrix A. This is done using standard Gaussian elimination with partial (row) pivoting. Note that this only applies to matrices with M >= N and full column rank.
+
+	A (DenseMat)	The matrix to factorize
+	p (*long int)	The array of pivots
 
 A successful LU factorization leaves the matrix A and the pivot array p with the following information:
 	1 p[k] contains the row number of the pivot element chosen at the beginning of elimination step k, k=0, 1, ..., N-1.
@@ -2021,6 +2095,10 @@ cvode.DenseGETRF.restype = ctypes.c_long
 
 def DenseGETRS(A, p, b):
 	"""DenseGETRS solves the N-dimensional system A x = b using the LU factorization in A and the pivot information in p computed in DenseGETRF. The solution x is returned in b. This routine cannot fail if the corresponding call to DenseGETRF did not fail.
+	A (DenseMat)	The banded matrix to factorize
+	p (*long int)	The array of pivots
+	b (*realtype)	The array containing the right hand side of the system A x = b
+
 DenseGETRS does NOT check for a squre matrix!"""
 	ret = cvode.DenseGETRS(A.data, p, b)
 	if ret < 0:
@@ -2030,59 +2108,74 @@ cvode.DenseGETRS.restype = None
 
 def DenseZero(A):
 	"""Zeroes the entire matrix
-	A	the matrix [DenseMat]"""
+	A (DenseMat)	the matrix"""
 	cvode.DenseZero(A.data)
 cvode.DenseZero.argtypes = [_DenseMat] 
 cvode.DenseZero.restype = None
 
 def DenseCopy(A, B):
 	"""Copies the contents of dense matrix B into A, overwriting A's contents.
-	A	the destination matrix [DenseMat]
-	B	the source matrix [DenseMat]
-	copymu	upper band width of matrices [int]
-	copyml	lower band width of matrices [int]"""
+	A (DenseMat)	the destination matrix
+	B (DenseMat)	the source matrix
+	copymu (int)	upper band width of matrices
+	copyml (int)	lower band width of matrices"""
 	cvode.DenseCopy(A.data, B.data)
 cvode.DenseCopy.argtypes = [_DenseMat, _DenseMat]
 cvode.DenseCopy.restype = None
 
 def DenseScale(c, A):
 	"""Scales the matrix A by c
-	A	the matrix [DenseMat]
-	c	the scale factor [float]"""
+	A (DenseMat)	the matrix
+	c (float)	the scale factor"""
 	cvode.DenseScale(c, A.data)
 cvode.DenseScale.argtypes = [realtype, _DenseMat]
 cvode.DenseScale.restype = None
 
 def DenseAddI(A):
 	"""Adds 1.0 to the diagonal of the dense matrix A
-	A	the matrix [DenseMat]"""
+	A (DenseMat)	the matrix"""
 	cvode.DenseAddI(A.data)
 cvode.DenseAddI.argtypes = [_DenseMat]
 cvode.DenseAddI.restype = None
 
 def DenseFreeMat(A):
 	"""DenseFreeMat frees the memory allocated by DenseAllocMat for the band matrix A.
-	A	the matrix [DenseMat]"""
+	A (DenseMat)	the matrix"""
 	cvode.DenseFreeMat(A.data)
 	del A.data
 cvode.DenseFreeMat.argtypes = [_DenseMat]
 cvode.DenseFreeMat.restype = None
 
 def DenseFreePiv(p):
-	"""DenseFreePiv frees the pivot information storage memory p allocated by DenseAllocPiv."""
+	"""DenseFreePiv frees the pivot information storage memory p allocated by DenseAllocPiv.
+	p (*long int)	The array of pivots"""
 	cvode.DenseFreePiv(p)
 cvode.DenseFreePiv.argtypes = [ctypes.POINTER(ctypes.c_long)]
 cvode.DenseFreePiv.restype = None
 
 def DensePrint(A):
-	"""Print out the dense matix A"""
+	"""Print out the dense matix A
+	A (DenseMat)	the matrix"""
 	cvode.DensePrint(A.data)
 cvode.DensePrint
 cvode.DensePrint.restype = None
 
 CVDenseJacFn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_long, ctypes.POINTER(_DenseMat), realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVDenseJacFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the Jacobian function. Jacobian functions for dense matrices take N (int = dimension of matrix), J (DenseMat = Jacobian Matrix), t (float = time step), y (NVector), fy (NVector), jac_data (c_void_p), tmp1 (NVector), tmp2 (NVector), and tmp3 (NVector) as parameters, and return an integer."""
+	"""Returns a callback wrapper around the given python callable object (func). This function should never be called directly, as it is called implicitly by CVBandSetJac.
+
+The callable python object must take exactly 9 parameters, which will be passed in as
+	N (int)			the length of all NVector arguments
+	J (BandMat)		the matrix that will be loaded with anpproximation of the Jacobian Matrix J = (df_i/dy_j) at the point (t,y).
+	t (realtype)		the current value of the independent variable
+	y (NVector)		the current value of the dependent variable vector
+	fy (NVector)		f(t,y)
+	jac_data (c_void_p)	pointer to user data set by CVDenseSetJacFunc
+	tmp1 (NVector)		preallocated temporary working space
+	tmp2 (NVector)		preallocated temporary working space
+	tmp3 (NVector)		preallocated temporary working space
+
+and must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVDenseJacFn)
 	exec 'def __CallbackInterface_%s(N, J, t, y, fy, jac_data, tmp1, tmp2, tmp3):\n\treturn __ActualCallback[%i](N, DenseMat(J), t, nvecserial.NVector(y), nvecserial.NVector(fy), jac_data, nvecserial.NVector(tmp1), nvecserial.NVector(tmp2), nvecserial.NVector(tmp3))'%(func.func_name, len(__ActualCallback))
@@ -2094,7 +2187,7 @@ def WrapCallbackCVDenseJacFn(func):
 def CVDense(cvodememobj, N):
 	"""A call to the CVDense function links the main CVODE integrator with the CVDENSE linear solver.
 	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
-	N		the size of the ODE system."""
+	N (int)				the size of the ODE system."""
 	ret = cvode.CVDense(cvodememobj.obj, N)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVDense() failed with flag %i"%(ret))
@@ -2104,8 +2197,17 @@ cvode.CVDense.restype = ctypes.c_int
 def CVDenseSetJacFn(cvodememobj, func, jac_data):
 	"""CVDenseSetJacFn sets the dense Jacobian approximation function to be used.
 	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
-	func		a python callable suitable for wrapping by WrapCallbackCVDenseJacFn
-	jac_data	a pointer to user data"""
+	func	is a python callable taking the parameters
+		N (int)			the length of all NVector arguments
+		J (BandMat)		the matrix that will be loaded with anpproximation of the Jacobian Matrix J = (df_i/dy_j) at the point (t,y).
+		t (realtype)		the current value of the independent variable
+		y (NVector)		the current value of the dependent variable vector
+		fy (NVector)		f(t,y)
+		jac_data (c_void_p)	pointer to user data set by CVDenseSetJacFunc
+		tmp1 (NVector)		preallocated temporary working space
+		tmp2 (NVector)		preallocated temporary working space
+		tmp3 (NVector)		preallocated temporary working space
+	jac_data			a pointer to user data"""
 	ret = cvode.CVDenseSetJacFn(cvodememobj.obj, WrapCallbackCVDenseJacFn(func), jac_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVDense() failed with flag %i"%(ret))
@@ -2125,7 +2227,8 @@ cvode.CVDenseGetWorkSpace.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_l
 cvode.CVDenseGetWorkSpace.restype = ctypes.c_int
 
 def CVDenseGetNumJacEvals(cvodememobj):
- 	"""CVDenseGetNumGfnEvals returns the number of calls made from CVDENSE to the user's Jacobian function."""
+ 	"""CVDenseGetNumGfnEvals returns the number of calls made from CVDENSE to the user's Jacobian function.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()"""
 	retval = ctypes.c_long(0)
 	ret = cvode.CVDenseGetNumJacEvals(cvodememobj.obj, ctypes.byref(retval))
 	if ret < 0:
@@ -2135,7 +2238,8 @@ cvode.CVDenseGetNumJacEvals.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c
 cvode.CVDenseGetNumJacEvals.restype = ctypes.c_int
 
 def CVDenseGetNumRhsEvals(cvodememobj):
- 	"""CVDenseGetNumGfnEvals returns the number of calls made from CVDENSE to the user's RHS function."""
+ 	"""CVDenseGetNumGfnEvals returns the number of calls made from CVDENSE to the user's RHS function.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()"""
 	retval = ctypes.c_long(0)
 	ret = cvode.CVDenseGetNumRhsEvals(cvodememobj.obj, ctypes.byref(retval))
 	if ret < 0:
@@ -2179,7 +2283,21 @@ CVSPILS_MEM_FAIL = -4
 
 CVSpilsPrecSetupFn = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_int, ctypes.POINTER(ctypes.c_int), realtype, ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVSpilsPrecSetupFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the preconditioner setup function."""
+	"""Returns a callback wrapper around the given python callable object (func). This function should never be called directly, as it is called implicitly by CVBandSetJac.
+
+The callable python object must take exactly 10 parameters, which will be passed in as
+	t (realtype)		the current value of the independent variable
+	y (NVector)		the current value of the dependent variable vector
+	fy (NVector)		f(t,y)
+	jok (*int)		set to 1 or 0 to indicate whether the jacobian needs to be recomputed from scratch (0) or not (1)
+	jCurPtr (*int)		should be set to 1 if Jacobian data was recomputed, otherwise 0
+	gamma (realtype)	the scalar appearing in the Newton matrix
+	P_data (c_void_p)	pointer to user data set by CVSpilsSetPreconditioner
+	tmp1 (NVector)		preallocated temporary working space
+	tmp2 (NVector)		preallocated temporary working space
+	tmp3 (NVector)		preallocated temporary working space
+
+and must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVSpilsPrecSetupFn)
 	exec 'def __CallbackInterface_%s(t, y, fy, jok, jcurPtr, gamma, P_data, tmp1, tmp2, tmp3):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(fy), jok, jcurPtr, gamma, P_data, nvecserial.NVector(tmp1), nvecserial.NVector(tmp2), nvecserial.NVector(tmp3))'%(func.func_name, len(__ActualCallback))
@@ -2190,7 +2308,21 @@ def WrapCallbackCVSpilsPrecSetupFn(func):
 
 CVSpilsPrecSolveFn = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), realtype, realtype, ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVSpilsPrecSolveFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the preconditioner solve function."""
+	"""Returns a callback wrapper around the given python callable object (func). This function should never be called directly, as it is called implicitly by CVBandSetJac.
+
+The callable python object must take exactly 10 parameters, which will be passed in as
+	t (realtype)		the current value of the independent variable
+	y (NVector)		the current value of the dependent variable vector
+	fy (NVector)		f(t,y)
+	r (NVector)		right hand side vector of the linear system
+	z (NVector)		the ouput vector computed by PrecSolve
+	gamma (realtype)	the scalar appearing in the Newton matrix
+	delta (realtype)	input tolerance for use by PSolve
+	lr (int)		use left preconditioner (1) or right preconditioner (2)
+	P_data (c_void_p)	pointer to user data set by CVSpilsSetPreconditioner
+	tmp (NVector)		preallocated temporary working space
+
+and must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVSpilsPrecSolveFn)
 	exec 'def __CallbackInterface_%s(t, y, fy, r, z, gamma, delta, lr, P_data, tmp):\n\treturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(fy), nvecserial.NVector(r), nvecserial.NVector(z), gamma, delta, lr, P_data, nvecserial.NVector(tmp))'%(func.func_name, len(__ActualCallback))
@@ -2201,7 +2333,18 @@ def WrapCallbackCVSpilsPrecSolveFn(func):
 
 CVSpilsJacTimesVecFn = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVSpilsJacTimesVecFn(func):
-	"""Creates a wrapper around a python callable object, that can be used as a callback for the jtimes solve function."""
+	"""Returns a callback wrapper around the given python callable object (func). This function should never be called directly, as it is called implicitly by CVBandSetJac.
+
+The callable python object must take exactly 7 parameters, which will be passed in as
+	v (NVector)		the NVector to be multiplied by J
+	Jv			the output NVector containing J*v
+	t (realtype)		the current value of the independent variable
+	y (NVector)		the current value of the dependent variable vector
+	fy (NVector)		f(t,y)
+	jac_data (c_void_p)	pointer to user data set by CVSpilsSetJacTimesVecFn
+	tmp (NVector)		preallocated temporary working space
+
+and must return an integer of 0 in the case of no error, otherwise a user defined integer indicating an error condition."""
 	if func == None:
 		return ctypes.cast(None, CVSpilsJacTimesVecFn)
 	exec 'def __CallbackInterface_%s(v, Jv, t, y, fy, jac_data, tmp):\n\treturn __ActualCallback[%i](nvecserial.NVector(v), nvecserial.NVector(Jv), t, nvecserial.NVector(y), nvecserial.NVector(fy), jac_data, nvecserial.NVector(tmp))'%(func.func_name, len(__ActualCallback))
@@ -2211,7 +2354,9 @@ def WrapCallbackCVSpilsJacTimesVecFn(func):
 	return tmp
 
 def CVSpilsSetPrecType(cvodememobj, pretype):
-	"""CVSpilsSetPrecType resets the type of preconditioner, pretype, from the value previously set.  This must be one of PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH."""
+	"""CVSpilsSetPrecType (re)sets the type of preconditioner.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
+	pretype (int)			This must be one of PREC_NONE, PREC_LEFT, PREC_RIGHT, or PREC_BOTH."""
 	ret = cvode.CVSpilsSetPrecType(cvodememobj.obj, pretype)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetPrecType() failed with flag %i"%(ret))
@@ -2219,7 +2364,9 @@ cvode.CVSpilsSetPrecType.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvode.CVSpilsSetPrecType.restype = ctypes.c_int
 
 def CVSpilsSetGSType(cvodememobj, gstype):
-	"""CVSpilsSetGSType specifies the type of Gram-Schmidt orthogonalization to be used. This must be one of the two enumeration constants MODIFIED_GS or CLASSICAL_GS defined in iterative.h. These correspond to using modified Gram-Schmidt and classical Gram-Schmidt, respectively.  Default value is MODIFIED_GS."""
+	"""CVSpilsSetGSType specifies the type of Gram-Schmidt orthogonalization to be used. 
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
+	gstype (int)			This must be one of the two enumeration constants MODIFIED_GS or CLASSICAL_GS defined in iterative.h. These correspond to using modified Gram-Schmidt and classical Gram-Schmidt, respectively.  Default value is MODIFIED_GS."""
 	ret = cvode.CVSpilsSetGSType(cvodememobj.obj, gstype)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetGSType() failed with flag %i"%(ret))
@@ -2227,7 +2374,9 @@ cvode.CVSpilsSetGSType.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvode.CVSpilsSetGSType.restype = ctypes.c_int
 
 def CVSpilsSetMaxl(cvodememobj, maxl):
-	"""CVSpilsSetMaxl resets the maximum Krylov subspace size, maxl, from the value previously set.  An input value <= 0, gives the default value."""
+	"""CVSpilsSetMaxl (re)sets the maximum Krylov subspace size.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
+	maxl (int)			the maximum Krylov subspace size. A value <= 0, gives the default value."""
 	ret = cvode.CVSpilsSetMaxl(cvodememobj.obj, maxl)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetMaxl() failed with flag %i"%(ret))
@@ -2235,7 +2384,9 @@ cvode.CVSpilsSetMaxl.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvode.CVSpilsSetMaxl.restype = ctypes.c_int
 
 def CVSpilsSetDelt(cvodememobj, delt):
-	"""CVSpilsSetDelt specifies the factor by which the tolerance on the nonlinear iteration is multiplied to get a tolerance on the linear iteration.  Default value is 0.05."""
+	"""CVSpilsSetDelt specifies the factor by which the tolerance on the nonlinear iteration is multiplied to get a tolerance on the linear iteration.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
+	delt (realtype)			Default value is 0.05."""
 	ret = cvode.CVSpilsSetDelt(cvodememobj.obj, delt)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetDelt() failed with flag %i"%(ret))
@@ -2243,7 +2394,31 @@ cvode.CVSpilsSetDelt.argtypes = [ctypes.c_void_p, realtype]
 cvode.CVSpilsSetDelt.restype = ctypes.c_int
 
 def CVSpilsSetPreconditioner(cvodememobj, pset, psolve, P_data):
-	"""CVSpilsSetPreconditioner specifies the PrecSetup and PrecSolve functions.  as well as a pointer to user preconditioner data.  This pointer is passed to PrecSetup and PrecSolve every time these routines are called.  Default is NULL for al three arguments."""
+	"""CVDenseSetJacFn sets the dense Jacobian approximation function to be used.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	pset	is a python callable taking the parameters
+		t (realtype)		the current value of the independent variable
+		y (NVector)		the current value of the dependent variable vector
+		fy (NVector)		f(t,y)
+		jok (*int)		set to 1 or 0 to indicate whether the jacobian needs to be recomputed from scratch (0) or not (1)
+		jCurPtr (*int)		should be set to 1 if Jacobian data was recomputed, otherwise 0
+		gamma (realtype)	the scalar appearing in the Newton matrix
+		P_data (c_void_p)	pointer to user data set by CVSpilsSetPreconditioner
+		tmp1 (NVector)		preallocated temporary working space
+		tmp2 (NVector)		preallocated temporary working space
+		tmp3 (NVector)		preallocated temporary working space
+	psolve	is a python callable taking the parameters
+		t (realtype)		the current value of the independent variable
+		y (NVector)		the current value of the dependent variable vector
+		fy (NVector)		f(t,y)
+		r (NVector)		right hand side vector of the linear system
+		z (NVector)		the ouput vector computed by PrecSolve
+		gamma (realtype)	the scalar appearing in the Newton matrix
+		delta (realtype)	input tolerance for use by PSolve
+		lr (int)		use left preconditioner (1) or right preconditioner (2)
+		P_data (c_void_p)	pointer to user data set by CVSpilsSetPreconditioner
+		tmp (NVector)		preallocated temporary working space
+	P_data				a pointer to user data"""
 	ret = cvode.CVSpilsSetPreconditioner(cvodememobj.obj, WrapCallbackCVSpilsPrecSetupFn(pset), WrapCallbackCVSpilsPrecSolveFn(psolve), P_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetPreconditioner() failed with flag %i"%(ret))
@@ -2251,7 +2426,17 @@ cvode.CVSpilsSetPreconditioner.argtypes = [ctypes.c_void_p, CVSpilsPrecSetupFn, 
 cvode.CVSpilsSetPreconditioner.restype = ctypes.c_int
 
 def CVSpilsSetJacTimesVecFn(cvodememobj, jtimes, jac_data):
-	"""CVSpilsSetJacTimesVecFn specifies the jtimes function and a pointer to user Jacobian data. This pointer is passed to jtimes every time the jtimes routine is called.  Default is to use an internal finite difference approximation routine."""
+	"""CVSpilsSetJacTimesVecFn specifies the jtimes function and a pointer to user Jacobian data. This pointer is passed to jtimes every time the jtimes routine is called.  Default is to use an internal finite difference approximation routine.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	jtimes	is a python callable taking the parameters
+		v (NVector)		the NVector to be multiplied by J
+		Jv			the output NVector containing J*v
+		t (realtype)		the current value of the independent variable
+		y (NVector)		the current value of the dependent variable vector
+		fy (NVector)		f(t,y)
+		jac_data (c_void_p)	pointer to user data set by CVSpilsSetJacTimesVecFn
+		tmp (NVector)		preallocated temporary working space
+	jac_data			a pointer to user data"""
 	ret = cvode.CVSpilsSetJacTimesVecFn(cvodememobj.obj, WrapCallbackCVSpilsJacTimesVecFn(jtimes), jac_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetJacTimesVecFn() failed with flag %i"%(ret))
