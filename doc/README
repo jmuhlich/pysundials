@@ -62,7 +62,7 @@ PySUNDIALS uses ctypes to link the required SUNDIALS libraries directly into
 the running python process. In order to do this, it needs to know where to find
 those shared libraries. On Linux/BSD systems, this is usually auto detected, as
 library locations are standard, however on windows systems, the final location
-and even naming convention of the shared library files is compiler dependant.
+and even naming convention of the shared library files is compiler dependent.
 If PySUNDIALS cannot find the SUNDIALS libraries, please locate them yourself,
 and specify their locations in a file named ~/.pysundials/config (Linux/BSD),
 or %HOMEPATH%\pysundials\config (Windows). If PySUNDIALS cannot find this
