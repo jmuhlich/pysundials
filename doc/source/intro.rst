@@ -11,7 +11,7 @@ Language specification (version 2), including triggers, events, and delays.  As
 such the development process is partially driven by the continuing parallel
 development of PySCeS.
 
-This documentation serves to introduce and act as a referece for PySUNDIALS. As
+This documentation serves to introduce and act as a reference for PySUNDIALS. As
 such it focuses on the differences in behaviour between PySUNDIALS and SUNDIALS.
 If you wish to know more about the underlying mathematical considerations, or
 wish a more in depth discussion of how to go about using SUNDIALS in general,
