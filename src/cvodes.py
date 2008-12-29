@@ -930,11 +930,11 @@ cvodes.CVodeSetSensMaxNonlinIters.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvodes.CVodeSetSensMaxNonlinIters.restype = ctypes.c_int
 
 def CVodeSetSensParams(cvodememobj, p, pbar, plist):
-	"""Set parameter information
+	"""Set parameter sensitivity information
 	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
-	p (*realtype)				pointer to problem paramters (usually part of some user data structure)
-	pbar (*realtype)			
-	plist (*realtype)			
+	p (*realtype)			pointer to problem paramters (usually part of some user data structure)
+	pbar (list)			list of scaling factors equal in length to number of sensitivities
+	plist (list)			list of 0 or 1's equal in length to p. 1 indicates that that partiular element of p should be used in sensitivity calculations"""
 	if pbar is not None:
 		wpbar = (realtype*len(pbar))()
 		for i in range(len(pbar)):
