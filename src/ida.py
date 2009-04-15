@@ -240,7 +240,7 @@ ida.IDASetMaxConvFails.argtypes = [ctypes.c_void_p, ctypes.c_int]
 ida.IDASetMaxConvFails.restype = ctypes.c_int
 
 def IDASetSuppressAlg(ida_mem, suppressalg):
-	ret = ida.IDASetSuppressAlg(ida_mem.obj, ctypes.byref(suppressalg))
+	ret = ida.IDASetSuppressAlg(ida_mem.obj, ctypes.c_int(suppressalg))
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: IDASetSuppressAlg() failed with flag %i"%(ret))
 ida.IDASetSuppressAlg.argtypes = [ctypes.c_void_p, ctypes.c_int]

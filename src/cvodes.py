@@ -741,7 +741,7 @@ cvodes.CVodeMalloc.argtypes = [ctypes.c_void_p, CVRhsFn, realtype, ctypes.POINTE
 cvodes.CVodeMalloc.restype = ctypes.c_int
 
 def CVodeReInit(cvodememobj, func, t0, y0, itol, reltol, abstol):
-	"""CVodeReInit re-initializes CVode for the solution of a problem, where a prior call to CVodeMalloc has been made with the same problem size N. CVodeReInit performs the same input checking and initializations that CVodeMalloc does.  But it does no memory allocation, assuming that the existing internal memory is sufficient for the new problem.
+	"""CVodeReInit re-initializes CVode for the solution of a problem, where a prior call to CVodeMalloc has been made with the same problem size N. CVodeReInit performs the same input checking and initializations that CVodeMalloc does. But it does no memory allocation, assuming that the existing internal memory is sufficient for the new problem.
 	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
 	func (function)			a python callable defining the right hand side function in y' = f(t,y), which is automatically wrapped by WrapCallbackCVRhsFn. The function specified takes the following parameters
 		t (realtype)		the current value of the independent variable
@@ -884,14 +884,42 @@ def CVodeQuadReInit(cvodememobj, fQ, yQ0):
 cvodes.CVodeQuadReInit.argtypes = [ctypes.c_void_p, CVQuadRhsFn, ctypes.POINTER(nvecserial._NVector)]
 cvodes.CVodeQuadReInit.restype = ctypes.c_int
 
-def CVodeSetSensRhsFn(cvodememobj, f, fS_dataS):
-	ret = cvodes.CVodeSetSensRhsFn(cvodememobj.obj, WrapCallbackCVSensRhsFn(f), fS_dataS)
+def CVodeSetSensRhsFn(cvodememobj, f, fS_data):
+	"""CVodeSetSensRhsFn sets the sensitivity right hand side function and any user data pointer.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
+	f (function)			a python callable defining the right hand side sensitivity function, which is automatically wrapped by WrapCallbackCVSensFn. The function specified takes the following parameters
+		Ns (int)		the number of sensitivities
+		t (realtype)		the current value of the independent variable
+		y (NVector)		the vector of current dependent values
+		yS (NVector)		the vector of current sensitivity values
+		ySdot (NVector)		undefined values, contents should be set to the new values of yS
+		fS_data (c_void_p)	pointer to user data set by CVodeSetSensFdata
+	fS_data (c_void_p)		a pointer to user data
+
+This function must compute right hand sides for all sensitivity equations."""
+	ret = cvodes.CVodeSetSensRhsFn(cvodememobj.obj, WrapCallbackCVSensRhsFn(f), fS_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetSensRhsFn() failed with flag %i"%(ret))
 cvodes.CVodeSetSensRhsFn.argtypes = [ctypes.c_void_p, CVSensRhsFn, ctypes.c_void_p]
 cvodes.CVodeSetSensRhsFn.restype = ctypes.c_int
 
 def CVodeSetSensRhs1Fn(cvodememobj, fS, fS_data):
+	"""CVodeSetSensRhs1Fn sets the sensitivity right hand side function and user data pointer.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
+	fS (function)				a python callable defining the right hand side sensitivity function, which is automatically wrapped by WrapCallbackCVSensFn1. The function specified takes the following parameters
+		Ns (int)		the number of sensitivities
+		t (realtype)		the current value of the independent variable
+		y (NVector)		the vector of current dependent values
+		ydot (NVector)		undefined values, contents should be set to the new values of y
+		iS (int)		the current sensitivity
+		yS (NVector)		the vector of current sensitivity values
+		ySdot (NVector)		undefined values, contents should be set to the new values of yS
+		fS_data (c_void_p)	pointer to user data set by CVodeSetSensFdata
+		tmp1 (NVector)		preallocated temporary storage
+		tmp2 (NVector)		preallocated temporary storage
+	fS_data (c_void_p)		a pointer to user data
+
+This function must compute right hand sides for one sensitivity equation at a time."""
 	ret = cvodes.CVodeSetSensRhs1Fn(cvodememobj.obj, WrapCallbackCVSensRhs1Fn(fS), fS_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetSensRhs1Fn() failed with flag %i"%(ret))
@@ -901,8 +929,8 @@ cvodes.CVodeSetSensRhs1Fn.restype = ctypes.c_int
 def CVodeSetSensDQMethod(cvodememobj, DQtype, DQrhomax):
 	"""Controls the selection of finite difference schemses used in evaluating the sensitivity right hand sides.
 	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
-	DQtype (int)		one of CV_CENETERED (default), CV_FORWARD, CV_SIMULTANEOUS or CV_SEPARATE
-	DQrhormax (float)	default 0"""
+	DQtype (int)			one of CV_CENTERED (default), CV_FORWARD, CV_SIMULTANEOUS or CV_SEPARATE
+	DQrhormax (float)		default 0"""
 	ret = cvodes.CVodeSetSensDQMethod(cvodememobj.obj, DQtype, DQrhomax)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetSensDQMethod() failed with flag %i"%(ret))
@@ -912,7 +940,7 @@ cvodes.CVodeSetSensDQMethod.restype = ctypes.c_int
 def CVodeSetSensErrCon(cvodememobj, errconS):
 	"""Consider sensitivity variables in error control?
 	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
-	errconS (int)				1 = true"""
+	errconS (int)			1 = true"""
 	ret = cvodes.CVodeSetSensErrCon(cvodememobj.obj, errconS)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetSensErrCon() failed with flag %i"%(ret))
@@ -954,6 +982,15 @@ cvodes.CVodeSetSensParams.argtypes = [ctypes.c_void_p, ctypes.POINTER(realtype),
 cvodes.CVodeSetSensParams.restype = ctypes.c_int
 
 def CVodeSetSensTolerances(cvodememobj, itolS, reltolS, abstolS):
+	"""Changes the sensitivity tolerances between calls to CVode().
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	itol (int)		the type of tolerances to be used. Legal values are:
+		CV_SS	scalar relative and absolute tolerances
+		CV_SV	scalar relative tolerance and a vector of absolute tolerances.
+		CV_WF	indicates that the user will provide a function to evaluate the error weights. In this case, reltol and abstol are ignored, and should be None.
+	reltol (float)		the relative tolerance scalar
+	abstol (float/NVector)	absolute tolerance(s)
+	"""
 	if itolS == CV_SS:
 		if type(abstolS) == realtype:
 			ret = cvodes.CVodeSetSensTolerances(cvodememobj.obj, itolS, reltolS, ctypes.byref(abstolS))
@@ -983,6 +1020,11 @@ cvodes.CVodeSetSensTolerances.argtypes = [ctypes.c_void_p, ctypes.c_int, realtyp
 cvodes.CVodeSetSensTolerances.restype = ctypes.c_int
 
 def CVodeSensMalloc(cvodememobj, Ns, ism, yS0):
+	"""CVodeSensMalloc allocates and initializes memory related to sensitivity computations.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
+	Ns (int)			is the number of sensitivities to be computed
+	ism (int)			is the type of corrector used in sensitivity analysis. Legal values are: CV_SIMULTANEOUS, CV_STAGGERED, and CV_STAGGERED1
+	yS0 (NVectorArray)		is the array of initial condition vectors for sensitivity variables"""
 	ret = cvodes.CVodeSensMalloc(cvodememobj.obj, Ns, ism, yS0.cdata)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSensMalloc() failed with flag %i"%(ret))
@@ -990,6 +1032,15 @@ cvodes.CVodeSensMalloc.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int, 
 cvodes.CVodeSensMalloc.restype = ctypes.c_int
 
 def CVodeSensReInit(cvodememobj, ism, yS0):
+	"""CVodeSensReInit re-initializes CVODES's sensitivity related memory for a problem, assuming it has already been allocated in prior calls to CVodeMalloc and CvodeSensMalloc.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CVodeCreate()
+	ism (int)			is the type of corrector used in sensitivity analysis. Legal values are: CV_SIMULTANEOUS, CV_STAGGERED, and CV_STAGGERED1
+	yS0 (NVectorArray)		is the array of initial condition vectors for sensitivity variables
+	
+All problem specification inputs are checked for errors.  The number of sensitivities Ns is assumed to be unchanged since the previous call to CVodeSensMalloc.  If any error occurs during initialization, it is reported to the file whose file pointer is errfp.
+
+CVodeSensReInit potentially does some minimal memory allocation (for the sensitivity absolute tolerance and for arrays of counters used by the CV_STAGGERED1 method).
+	"""
 	ret = cvodes.CVodeSensReInit(cvodememobj.obj, ism, yS0.cdata)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSensReInit() failed with flag %i"%(ret))
@@ -997,6 +1048,7 @@ cvodes.CVodeSensReInit.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.POINTER
 cvodes.CVodeSensReInit.restype = ctypes.c_int
 
 def CVodeSensToggleOff(cvodememobj):
+	"""CVodeSensToggleOff deactivates sensitivity calculations. It does NOT deallocate sensitivity-related memory so that sensitivity computations can be later toggled ON (through CVodeSensReInit).  """
 	ret = cvodes.CVodeSensToggleOff(cvodememobj.obj)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSensToggleOff() failed with flag %i"%(ret))
@@ -1318,6 +1370,10 @@ cvodes.CVodeGetReturnFlagName.argtypes = [ctypes.c_int]
 cvodes.CVodeGetReturnFlagName.restype = ctypes.c_char_p
 
 def CVodeGetQuad(cvodememobj, t, yQout):
+	"""Returns quadrature variables in yQout.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	t (float)			independant variable
+	yQout (NVector)			vector in which results are placed"""
 	ret = cvodes.CVodeGetQuad(cvodememobj.obj, t, yQout.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeGetQuad() failed with flag %i"%(ret))
@@ -1325,6 +1381,11 @@ cvodes.CVodeGetQuad.argtypes = [ctypes.c_void_p, realtype, ctypes.POINTER(nvecse
 cvodes.CVodeGetQuad.restype = ctypes.c_int
 
 def CVodeGetQuadDky(cvodememobj, t, k, dky):
+	"""Returns the kth derivative of the quadrature variables at time t in yQout.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	t (float)			independant variable
+	k (int)				order of derivative
+	yQout (NVector)			vector in which results are placed"""
 	ret = cvodes.CVodeGetQuadDky(cvodememobj.obj, t, k, dky.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeGetQuadDky() failed with flag %i"%(ret))
@@ -1332,6 +1393,8 @@ cvodes.CVodeGetQuadDky.argtypes = [ctypes.c_void_p, realtype, ctypes.c_int, ctyp
 cvodes.CVodeGetQuadDky.restype = ctypes.c_int
 
 def CVodeGetQuadNumRhsEvals(cvodememobj):
+	"""CVodeGetQuadNumRhsEvals returns the number of calls to the user function fQ defining the right hand side of the quadrature variables.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nfQevals = ctypes.c_long(0)
 	ret = cvodes.CVodeGetQuadNumRhsEvals(cvodememobj.obj, ctypes.byref(nfQevals))
 	if ret < 0:
@@ -1341,6 +1404,8 @@ cvodes.CVodeGetQuadNumRhsEvals.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctype
 cvodes.CVodeGetQuadNumRhsEvals.restype = ctypes.c_int
 
 def CVodeGetQuadNumErrTestFails(cvodememobj):
+	"""CVodeGetQuadNumErrTestFails returns the number of local error test failures for quadrature variables.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nQetfails = ctypes.c_long(0)
 	ret = cvodes.CVodeGetQuadNumErrTestFails(cvodememobj.obj, ctypes.byref(nQetfails))
 	if ret < 0:
@@ -1350,6 +1415,9 @@ cvodes.CVodeGetQuadNumErrTestFails.argtypes = [ctypes.c_void_p, ctypes.POINTER(c
 cvodes.CVodeGetQuadNumErrTestFails.restype = ctypes.c_int
 
 def CVodeGetQuadErrWeights(cvodememobj, eQweight):
+	"""CVodeGetQuadErrWeights returns the vector of error weights for the quadrature variables.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	eQweight (NVector)		vector in which results are placed"""
 	ret = cvodes.CVodeGetQuadErrWeights(cvodememobj.obj, eQweight.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeGetQuadErrWeights() failed with flag %i"%(ret))
@@ -1357,6 +1425,8 @@ cvodes.CVodeGetQuadErrWeights.argtypes = [ctypes.c_void_p, ctypes.POINTER(nvecse
 cvodes.CVodeGetQuadErrWeights.restype = ctypes.c_int
 
 def CVodeGetQuadStats(cvodememobj):
+	"""A convenience function return a tuple of results from CVodeGetQuadNumRhsEvals and CVodeGetQuadErrTestFails respectively.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nfQevals = ctypes.c_long(0)
 	nQetfails = ctypes.c_long(0)
 	ret = cvodes.CVodeGetQuadStats(cvodememobj.obj, ctypes.byref(nfQevals), ctypes.byref(nQetfails))
@@ -1367,6 +1437,10 @@ cvodes.CVodeGetQuadStats.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_lo
 cvodes.CVodeGetQuadStats.restype = ctypes.c_int
 
 def CVodeGetSens(cvodememobj, t, ySout):
+	"""CVodeGetSens returns sensitivities of the y function at the time t.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	t (float)			independent variable
+	ySout (NVectorArray)		vector array in which results are placed (must be large enough to hold the designated number of sensitivities)"""
 	ret = cvodes.CVodeGetSens(cvodememobj.obj, t, ySout.cdata)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeGetSens() failed with flag %i"%(ret))
@@ -1374,13 +1448,22 @@ cvodes.CVodeGetSens.argtypes = [ctypes.c_void_p, realtype, ctypes.POINTER(ctypes
 cvodes.CVodeGetSens.restype = ctypes.c_int
 
 def CVodeGetSens1(cvodememobj, t, i, ySout):
+	"""CVodeGetSens1 returns the i-th sensitivity vector of the y function at the time t. The argument ySout must be an N_Vector
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	t (float)			independent variable
+	ySout (NVector)			vector in which results are placed"""
 	ret = cvodes.CVodeGetSens1(cvodememobj.obj, t, i, ySout.cdata)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeGetSens1() failed with flag %i"%(ret))
 cvodes.CVodeGetSens1.argtypes = [ctypes.c_void_p, realtype, ctypes.c_int, ctypes.POINTER(nvecserial._NVector)]
 cvodes.CVodeGetSens1.restype = ctypes.c_int
 
-def CVodeGetSensDky(cvodememobj):
+def CVodeGetSensDky(cvodememobj, t, k, dkyA):
+	"""CVodeGetSensDky computes the k-th derivative of all sensitivities of the y function at time t. It repeatedly calls CVodeGetSensDky. 
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	t (float)			independant variable
+	k (int)				order of derivative
+	dkyA (NVectorArray)		vector array in which results are placed (must be large enough to hold the designated number of sensitivities)"""
 	t = ctypes.c_int(0)
 	ret = cvodes.CVodeGetSensDky(cvodememobj.obj, ctypes.byref(t), k, dkyA.data)
 	if ret < 0:
@@ -1390,6 +1473,12 @@ cvodes.CVodeGetSensDky.argtypes = [ctypes.c_void_p, realtype, ctypes.c_int, ctyp
 cvodes.CVodeGetSensDky.restype = ctypes.c_int
 
 def CVodeGetSensDky1(cvodememobj, t, k, i, dky):
+	"""CVodeGetSensDky1 computes the kth derivative of the i-th sensitivity (i=1, 2, ..., Ns) of the y function at time t, where tn-hu <= t <= tn, tn denotes the current internal time reached, and hu is the last internal step size successfully used by the solver. The user may request k=0, 1, ..., qu, where qu is the current order.
+It is only legal to call this function after a successful return from CVode with sensitivty computations enabled.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	t (float)			independant variable
+	k (int)				order of derivative
+	dky (NVector)			vector in which results are placed"""
 	ret = cvodes.CVodeGetSensDky1(cvodememobj.obj, t, k, i, dky.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeGetSensDky1() failed with flag %i"%(ret))
@@ -1397,6 +1486,8 @@ cvodes.CVodeGetSensDky1.argtypes = [ctypes.c_void_p, realtype, ctypes.c_int, cty
 cvodes.CVodeGetSensDky1.restype = ctypes.c_int
 
 def CVodeGetNumSensRhsEvals(cvodememobj):
+	"""CVodeGetNumSensRhsEvals returns the number of calls to the sensitivity right hand side routine.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nfSevals = ctypes.c_long(0)
 	ret = cvodes.CVodeGetNumSensRhsEvals(cvodememobj.obj, ctypes.byref(nfSevals))
 	if ret < 0:
@@ -1406,6 +1497,8 @@ cvodes.CVodeGetNumSensRhsEvals.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctype
 cvodes.CVodeGetNumSensRhsEvals.restype = ctypes.c_int
 
 def CVodeGetNumRhsEvalsSens(cvodememobj):
+	"""CVodeGetNumRhsEvalsSens returns the number of calls to the user f routine due to finite difference evaluations of the sensitivity equations.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nfevalsS = ctypes.c_long(0)
 	ret = cvodes.CVodeGetNumRhsEvalsSens(cvodememobj.obj, ctypes.byref(nfevalsS))
 	if ret < 0:
@@ -1415,6 +1508,8 @@ cvodes.CVodeGetNumRhsEvalsSens.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctype
 cvodes.CVodeGetNumRhsEvalsSens.restype = ctypes.c_int
 
 def CVodeGetNumSensErrTestFails(cvodememobj):
+	"""CVodeGetNumSensErrTestFails returns the number of local error test failures for sensitivity variables.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nSetfails = ctypes.c_long(0)
 	ret = cvodes.CVodeGetNumSensErrTestFails(cvodememobj.obj, ctypes.byref(nSetfails))
 	if ret < 0:
@@ -1424,6 +1519,8 @@ cvodes.CVodeGetNumSensErrTestFails.argtypes = [ctypes.c_void_p, ctypes.POINTER(c
 cvodes.CVodeGetNumSensErrTestFails.restype = ctypes.c_int
 
 def CVodeGetNumSensLinSolvSetups(cvodememobj):
+	"""CVodeGetNumSensLinSolvSetups returns the number of calls made to the linear solver's setup routine due to sensitivity computations.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nlinsetupsS = ctypes.c_long(0)
 	ret = cvodes.CVodeGetNumSensLinSolvSetups(cvodememobj.obj, ctypes.byref(nlinsetupsS))
 	if ret < 0:
@@ -1433,6 +1530,9 @@ cvodes.CVodeGetNumSensLinSolvSetups.argtypes = [ctypes.c_void_p, ctypes.POINTER(
 cvodes.CVodeGetNumSensLinSolvSetups.restype = ctypes.c_int
 
 def CVodeGetSensErrWeights(cvodememobj, eSweight):
+	"""CVodeGetSensErrWeights returns the sensitivity error weight vectors. The user need not allocate space for ewtS.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	eSweight (NVector)		the vector in which results are placed"""
 	ret = cvodes.CVodeGetSensErrWeights(cvodememobj.obj, eSweight.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeGetSensErrWeights() failed with flag %i"%(ret))
@@ -1440,6 +1540,8 @@ cvodes.CVodeGetSensErrWeights.argtypes = [ctypes.c_void_p, ctypes.POINTER(nvecse
 cvodes.CVodeGetSensErrWeights.restype = ctypes.c_int
 
 def CVodeGetSensStats(cvodememobj):
+	"""A convenience function that provides the optional outputs in a tuple (NumSensRhsEvals, NumRhsEvalsSens, NumSensErrTestFails, NumSensLinSolvSetups)
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nfSevals = ctypes.c_long(0)
 	nfevalsS = ctypes.c_long(0)
 	nSetfails = ctypes.c_long(0)
@@ -1452,6 +1554,8 @@ cvodes.CVodeGetSensStats.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_lo
 cvodes.CVodeGetSensStats.restype = ctypes.c_int
 
 def CVodeGetNumSensNonlinSolvIters(cvodememobj):
+	"""CVodeGetNumSensNonlinSolvIters returns the total number of nonlinear iterations for sensitivity variables.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nSniters = ctypes.c_long(0)
 	ret = cvodes.CVodeGetNumSensNonlinSolvIters(cvodememobj.obj, ctypes.byref(nSniters))
 	if ret < 0:
@@ -1461,6 +1565,8 @@ cvodes.CVodeGetNumSensNonlinSolvIters.argtypes = [ctypes.c_void_p, ctypes.POINTE
 cvodes.CVodeGetNumSensNonlinSolvIters.restype = ctypes.c_int
 
 def CVodeGetNumSensNonlinSolvConvFails(cvodememobj):
+	"""CVodeGetNumSensNonlinSolvConvFails returns the total number of nonlinear convergence failures for sensitivity variables
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nSncfails = ctypes.c_long(0)
 	ret = cvodes.CVodeGetNumSensNonlinSolvConvFails(cvodememobj.obj, ctypes.byref(nSncfails))
 	if ret < 0:
@@ -1470,6 +1576,8 @@ cvodes.CVodeGetNumSensNonlinSolvConvFails.argtypes = [ctypes.c_void_p, ctypes.PO
 cvodes.CVodeGetNumSensNonlinSolvConvFails.restype = ctypes.c_int
 
 def CVodeGetNumStgrSensNonlinSolvIters(cvodememobj):
+	"""CVodeGetNumStgrSensNonlinSolvIters returns a vector of Ns nonlinear iteration counters for sensitivity variables in the CV_STAGGERED1 method.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nSTGR1niters = ctypes.c_long(0)
 	ret = cvodes.CVodeGetNumStgrSensNonlinSolvIters(cvodememobj.obj, ctypes.byref(nSTGR1niters))
 	if ret < 0:
@@ -1479,6 +1587,8 @@ cvodes.CVodeGetNumStgrSensNonlinSolvIters.argtypes = [ctypes.c_void_p, ctypes.PO
 cvodes.CVodeGetNumStgrSensNonlinSolvIters.restype = ctypes.c_int
 
 def CVodeGetNumStgrSensNonlinSolvConvFails(cvodememobj):
+	"""CVodeGetNumStgrSensNonlinSolvConvFails returns a vector of Ns nonlinear solver convergence failure counters for sensitivity variables in the CV_STAGGERED1 method.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nSTGR1ncfails = ctypes.c_long(0)
 	ret = cvodes.CVodeGetNumStgrSensNonlinSolvConvFails(cvodememobj.obj, ctypes.byref(nSTGR1ncfails))
 	if ret < 0:
@@ -1488,6 +1598,8 @@ cvodes.CVodeGetNumStgrSensNonlinSolvConvFails.argtypes = [ctypes.c_void_p, ctype
 cvodes.CVodeGetNumStgrSensNonlinSolvConvFails.restype = ctypes.c_int
 
 def CVodeGetSensNonlinSolvStats(cvodememobj):
+	"""A convenience function that provides the optional outputs in a tuple (NumSensNonlinSolvIters, NumSensNonlinSolvConvFails, NumStgrSensNonlinSolvIters, NumStgrSensNonlinSolvConvFails)
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	nSniters = ctypes.c_long(0)
 	nSncfails = ctypes.c_long(0)
 	ret = cvodes.CVodeGetSensNonlinSolvStats(cvodememobj.obj, ctypes.byref(nSniters), ctypes.byref(nSncfails))
@@ -1503,6 +1615,8 @@ cvodes.CVodeGetSensNonlinSolvStats.restype = ctypes.c_int
 #	del cvodememobj.obj
 
 def CVodeQuadFree(cvodememobj):
+	"""CVodeQuadFree frees the problem memory in cvodememobj allocated for quadrature integration. 
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	ret = cvodes.CVodeQuadFree(cvodememobj.obj)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeQuadFree() failed with flag %i"%(ret))
@@ -1510,6 +1624,8 @@ cvodes.CVodeQuadFree.argtypes = [ctypes.c_void_p]
 cvodes.CVodeQuadFree.restype = None
 
 def CVodeSensFree(cvodememobj):
+	"""CVodeSensFree frees the problem memory in cvodememobj allocated for sensitivity analysis.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()"""
 	ret = cvodes.CVodeSensFree(cvodememobj.obj)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSensFree() failed with flag %i"%(ret))
@@ -1517,6 +1633,12 @@ cvodes.CVodeSensFree.argtypes = [ctypes.c_void_p]
 cvodes.CVodeSensFree.restype = None
 
 def CVadjMalloc(cvodememobj, steps, interp):
+	"""CVadjMalloc specifies some parameters for the adjoint problem and allocates space for the global CVODEA memory structure.
+	cvodememobj (CVodeMemObj)	a CVodeMemObj as returned by CvodeCreate()
+	steps (int)
+	interp (int)			specifies the interpolation type used to evaluate the forward solution during the backward integration phase.
+		CV_HERMITE specifies cubic Hermite interpolation.
+		CV_POYNOMIAL specifies the polynomial interpolation"""
 	ret = cvodes.CVadjMalloc(cvodememobj.obj, steps, interp)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVadjMalloc() failed with flag %i"%(ret))
@@ -1525,6 +1647,13 @@ cvodes.CVadjMalloc.argtypes = [ctypes.c_void_p, ctypes.c_long, ctypes.c_int]
 cvodes.CVadjMalloc.restype = ctypes.c_void_p
 
 def CVadjSetInterpType(cvadj_mem, interp):
+	"""Changes the interpolation type.
+	cvadj_mem (CVodeMemObj)		a pointer to the adjoint problem memory portion of CVodeMemObj as returned by CVadjMalloc()
+	interp (int)			specifies the interpolation type used to evaluate the forward solution during the backward integration phase.
+		CV_HERMITE specifies cubic Hermite interpolation.
+		CV_POYNOMIAL specifies the polynomial interpolation
+
+Must be called only after CVadjMalloc"""
 	ret = cvodes.CVadjSetInterpType(cvadj_mem, interp)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVadjSetInterpType() failed with flag %i"%(ret))
@@ -1532,6 +1661,19 @@ cvodes.CVadjSetInterpType.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvodes.CVadjSetInterpType.restype = ctypes.c_int
 
 def CVodeF(cvadj_mem, tout, yout, tret, itask, ncheckPtr):
+	"""
+   * CVodeF integrates towards tout and returns solution into yout.
+   * In the same time, it stores check point data every 'steps'.
+   *
+   * CVodeF can be called repeatedly by the user.
+   *
+   * ncheckPtr points to the number of check points stored so far.
+   *
+   * Return values:
+   *    CV_SUCCESS
+   *    CVADJ_MEM_FAIL
+   *    any CVode return value
+	"""
 	ret = cvodes.CVodeF(cvadj_mem, tout, yout.data, tret, itask, ncheckPtr)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeF() failed with flag %i"%(ret))
@@ -1539,6 +1681,12 @@ cvodes.CVodeF.argtypes = [ctypes.c_void_p, realtype, ctypes.POINTER(nvecserial._
 cvodes.CVodeF.restype = ctypes.c_int
 
 def CVodeCreateB(cvadj_mem, lmmB, iterB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeCreateB(cvadj_mem, lmmB, iterB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeCreateB() failed with flag %i"%(ret))
@@ -1546,6 +1694,12 @@ cvodes.CVodeCreateB.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVodeCreateB.restype = ctypes.c_int
 
 def CVodeMallocB(cvadj_mem, fB, tB0, yB0, itolB, reltolB, abstolB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	if itolB == CV_SS:
 		if type(abstolB) == realtype:
 			ret = cvodes.CVodeMallocB(cvadj_mem, WrapCallbackCVRhsFnB(fB), tB0, yB0.data, itolB, reltolB, ctypes.byref(abstolB))
@@ -1575,6 +1729,12 @@ cvodes.CVodeMallocB.argtypes = [ctypes.c_void_p, CVRhsFnB, realtype, ctypes.POIN
 cvodes.CVodeMallocB.restype = ctypes.c_int
 
 def CVodeSetErrHandlerFnB(cvadj_mem, ehfunB, eh_dataB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetErrHandlerFnB(cvadj_mem, WrapCallbackCVErrHandlerFn(ehfunB), eh_dataB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetErrHandlerFnB() failed with flag %i"%(ret))
@@ -1582,6 +1742,12 @@ cvodes.CVodeSetErrHandlerFnB.argtypes = [ctypes.c_void_p, CVErrHandlerFn, ctypes
 cvodes.CVodeSetErrHandlerFnB.restype = ctypes.c_int
 
 def CVodeSetErrFileB(cvadj_mem, fileobj):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetErrFileB(cvadj_mem, sundials_core.fdopen(fileobj.fileno, filobj.mode))
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetErrFileB() failed with flag %i"%(ret))
@@ -1589,6 +1755,12 @@ cvodes.CVodeSetErrFileB.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
 cvodes.CVodeSetErrFileB.restype = ctypes.c_int
 
 def CVodeSetIterTypeB(cvadj_mem, iterB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetIterTypeB(cvadj_mem, iterB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetIterTypeB() failed with flag %i"%(ret))
@@ -1596,6 +1768,12 @@ cvodes.CVodeSetIterTypeB.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvodes.CVodeSetIterTypeB.restype = ctypes.c_int
 
 def CVodeSetFdataB(cvadj_mem, f_dataB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetFdataB(cvadj_mem, f_dataB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetFdataB() failed with flag %i"%(ret))
@@ -1603,6 +1781,12 @@ cvodes.CVodeSetFdataB.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
 cvodes.CVodeSetFdataB.restype = ctypes.c_int
 
 def CVodeSetMaxOrdB(cvadj_mem, maxordB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetMaxOrdB(cvadj_mem, maxordB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetMaxOrdB() failed with flag %i"%(ret))
@@ -1610,6 +1794,12 @@ cvodes.CVodeSetMaxOrdB.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvodes.CVodeSetMaxOrdB.restype = ctypes.c_int
 
 def CVodeSetMaxNumStepsB(cvadj_mem, mxstepsB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetMaxNumStepsB(cvadj_mem, mxstepsB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetMaxNumStepsB() failed with flag %i"%(ret))
@@ -1617,6 +1807,12 @@ cvodes.CVodeSetMaxNumStepsB.argtypes = [ctypes.c_void_p, ctypes.c_long]
 cvodes.CVodeSetMaxNumStepsB.restype = ctypes.c_int
 
 def CVodeSetStabLimDetB(cvadj_mem, stldetB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetStabLimDetB(cvadj_mem, stldetB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetStabLimDetB() failed with flag %i"%(ret))
@@ -1624,6 +1820,12 @@ cvodes.CVodeSetStabLimDetB.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvodes.CVodeSetStabLimDetB.restype = ctypes.c_int
 
 def CVodeSetInitStepB(cvadj_mem, hinB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetInitStepB(cvadj_mem, hinB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetInitStepB() failed with flag %i"%(ret))
@@ -1631,6 +1833,12 @@ cvodes.CVodeSetInitStepB.argtypes = [ctypes.c_void_p, realtype]
 cvodes.CVodeSetInitStepB.restype = ctypes.c_int
 
 def CVodeSetMinStepB(cvadj_mem, hminB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetMinStepB(cvadj_mem, hminB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetMinStepB() failed with flag %i"%(ret))
@@ -1638,6 +1846,12 @@ cvodes.CVodeSetMinStepB.argtypes = [ctypes.c_void_p, realtype]
 cvodes.CVodeSetMinStepB.restype = ctypes.c_int
 
 def CVodeSetMaxStepB(cvadj_mem, hmaxB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetMaxStepB(cvadj_mem, hmaxB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetMaxStepB() failed with flag %i"%(ret))
@@ -1645,6 +1859,12 @@ cvodes.CVodeSetMaxStepB.argtypes = [ctypes.c_void_p, realtype]
 cvodes.CVodeSetMaxStepB.restype = ctypes.c_int
 
 def CVodeReInitB(cvadj_mem, fB, tB0, yB0, itolB, reltolB, abstolB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	if itolB == CV_SS:
 		if type(abstolB) == realtype:
 			ret = cvodes.CVodeReInitB(cvadj_mem, WrapCallbackCVRhsFnB(fB), tB0, yB0.data, itolB, reltolB, ctypes.byref(abstolB))
@@ -1674,6 +1894,12 @@ cvodes.CVodeReInitB.argtypes = [ctypes.c_void_p, CVRhsFnB, realtype, ctypes.POIN
 cvodes.CVodeReInitB.restype = ctypes.c_int
 
 def CVodeSetQuadFdataB(cvadj_mem, fQ_dataB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeSetQuadFdataB(cvadj_mem, fQ_dataB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeSetQuadFdataB() failed with flag %i"%(ret))
@@ -1681,6 +1907,12 @@ cvodes.CVodeSetQuadFdataB.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
 cvodes.CVodeSetQuadFdataB.restype = ctypes.c_int
 
 def CVodeSetQuadErrConB(cvadj_mem, errconQB, itolQB, reltolQB, abstolQB):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	if itolQB == CV_SS:
 		if type(abstolQB) == realtype:
 			ret = cvodes.CVodeSetQuadErrConB(cvadj_mem, errconQB, itolQB, reltolQB, ctypes.byref(abstolQB))
@@ -1710,6 +1942,12 @@ cvodes.CVodeSetQuadErrConB.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_i
 cvodes.CVodeSetQuadErrConB.restype = ctypes.c_int
 
 def CVodeQuadMallocB(cvadj_mem, fQB, yQB0):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeQuadMallocB(cvadj_mem, WrapCallbackCVQuadRhsFnB(fQB), yQB0.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeQuadMallocB() failed with flag %i"%(ret))
@@ -1717,6 +1955,12 @@ cvodes.CVodeQuadMallocB.argtypes = [ctypes.c_void_p, CVQuadRhsFnB, ctypes.POINTE
 cvodes.CVodeQuadMallocB.restype = ctypes.c_int
 
 def CVodeQuadReInitB(cvadj_mem, fQB, yQB0):
+	"""
+   * CVodeCreateB, CVodeMallocB, CVodeSet*B
+   *    These functions are just wrappers around the corresponding
+   *    functions in cvodes.h, with some particularizations for the
+   *    backward integration.
+	"""
 	ret = cvodes.CVodeQuadReInitB(cvadj_mem, WrapCallbackCVQuadRhsFnB(fQB), yQB0.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeQuadReInitB() failed with flag %i"%(ret))
@@ -1724,6 +1968,13 @@ cvodes.CVodeQuadReInitB.argtypes = [ctypes.c_void_p, CVQuadRhsFnB, ctypes.POINTE
 cvodes.CVodeQuadReInitB.restype = ctypes.c_int
 
 def CVodeB(cvadj_mem, tBout, yBout, tBret, itaskB):
+	"""
+   * CVodeB performs the backward integration from tfinal to
+   * tinitial through a sequence of forward-backward runs in
+   * between consecutive check points. It returns the values of
+   * the adjoint variables and any existing quadrature variables
+   * at tinitial.
+	"""
 	ret = cvodes.CVodeB(cvadj_mem, tBout, yBout.data, tBret, itaskB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeB() failed with flag %i"%(ret))
@@ -1731,6 +1982,10 @@ cvodes.CVodeB.argtypes = [ctypes.c_void_p, realtype, ctypes.POINTER(nvecserial._
 cvodes.CVodeB.restype = ctypes.c_int
 
 def CVodeGetQuadB(cvadj_mem, qB):
+	"""
+   * CVodeGetQuadB extracts values for quadrature variables in
+   * the N_Vector qB.
+	"""
 	ret = cvodes.CVodeGetQuadB(cvadj_mem, qB.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVodeGetQuadB() failed with flag %i"%(ret))
@@ -1738,6 +1993,9 @@ cvodes.CVodeGetQuadB.argtypes = [ctypes.c_void_p, ctypes.POINTER(nvecserial._NVe
 cvodes.CVodeGetQuadB.restype = ctypes.c_int
 
 def CVadjFree(cvadj_mem):
+	"""
+   * CVadjFree frees the memory allocated by CVadjMalloc.
+	"""
 	ret = cvodes.CVadjFree(cvadj_mem)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVadjFree() failed with flag %i"%(ret))
@@ -1745,6 +2003,12 @@ cvodes.CVadjFree.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 cvodes.CVadjFree.restype = None
 
 def CVadjGetCVodeBmem(cvadj_mem):
+	"""
+   * CVadjGetCVodeBmem returns a (void *) pointer to the CVODES
+   * memory allocated for the backward problem. This pointer can
+   * then be used to call any of the CVodeGet* CVODES routines to
+   * extract optional output for the backward integration phase.
+	"""
 	ret = cvodes.CVadjGetCVodeBmem(cvadj_mem)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVadjGetCVodeBmem() failed with flag %i"%(ret))
@@ -1753,11 +2017,22 @@ cvodes.CVadjGetCVodeBmem.argtypes = [ctypes.c_void_p]
 cvodes.CVadjGetCVodeBmem.restype = ctypes.c_void_p
 
 def CVadjGetReturnFlagName(flag):
+	"""
+   * The following function returns the name of the constant 
+   * associated with a CVODEA-specific return flag
+	"""
 	return cvodes.CVadjGetReturnFlagName(flag)
 cvodes.CVadjGetReturnFlagName.argtypes = [ctypes.c_int]
 cvodes.CVadjGetReturnFlagName.restype = ctypes.c_char_p
 
 def CVadjGetY(cvadj_mem, t, y):
+	"""
+   * CVadjGetY
+   *    Returns the interpolated forward solution at time t. This
+   *    function is a wrapper around the interpType-dependent internal
+   *    function.
+   *    The calling function must allocate space for y.
+	"""
 	ret = cvodes.CVadjGetY(cvadj_mem, t, y.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVadjGetY() failed with flag %i"%(ret))
@@ -1776,6 +2051,11 @@ class CVadjCheckPointRec(ctypes.Structure):
 	]
 
 def CVadjGetCheckPointsInfo(cvadj_mem):
+	"""
+   * CVadjGetCheckPointsInfo
+   *    Loads an array of nckpnts structures of type CVadjCheckPointRec.
+   *    The user must allocate space for ckpnt (ncheck+1).
+	"""
 	ckpnt = CVadjCheckPointRec()
 	ret = cvodes.CVadjGetCheckPointsInfo(cvadj_mem, ctypes.byref(ckpnt))
 	if ret < 0:
@@ -1785,6 +2065,13 @@ cvodes.CVadjGetCheckPointsInfo.argtypes = [ctypes.c_void_p, ctypes.POINTER(CVadj
 cvodes.CVadjGetCheckPointsInfo.restype = ctypes.c_int
 
 def CVadjGetDataPointHermite(cvadj_memi, which, t, y, yd):
+	"""
+   * CVadjGetDataPointHermite
+   *    Returns the 2 vectors stored for cubic Hermite interpolation 
+   *    at the data point 'which'. The user must allocate space for
+   *    y and yd. Returns CVADJ_MEM_NULL if cvadj_mem is NULL.
+   *    Returns CV_ILL_INPUT if interpType != CV_HERMITE.
+	"""
 	ret = cvodes.CVadjGetDataPointHermite(cvadj_mem, which, ctypes.byref(t), y.data, yd.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVadjGetDataPointHermite() failed with flag %i"%(ret))
@@ -1792,6 +2079,13 @@ cvodes.CVadjGetDataPointHermite.argtypes = [ctypes.c_void_p, ctypes.c_long, ctyp
 cvodes.CVadjGetDataPointHermite.restype = ctypes.c_int
 
 def CVadjGetDataPointPolynomial(cvadj_mem, which, t, order, y):
+	"""
+   * CVadjGetDataPointPolynomial
+   *    Returns the vector stored for polynomial interpolation 
+   *    at the data point 'which'. The user must allocate space for
+   *    y. Returns CVADJ_MEM_NULL if cvadj_mem is NULL.
+   *    Returns CV_ILL_INPUT if interpType != CV_POLYNOMIAL.
+	"""
 	ret = cvodes.CVadjGetDataPointPolynomial(cvadj_mem, which, ctypes.byref(t), ctypes.byref(order), y.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVadjGetDataPointPolynomial() failed with flag %i"%(ret))
@@ -1799,6 +2093,10 @@ cvodes.CVadjGetDataPointPolynomial.argtypes = [ctypes.c_void_p, ctypes.c_long, c
 cvodes.CVadjGetDataPointPolynomial.restype = ctypes.c_int
 
 def CVadjGetCurrentCheckPoint(cvadj_mem):
+	"""
+   * CVadjGetCurrentCheckPoint
+   *    Returns the address of the 'active' check point.
+	"""
 	addr = ctypes.c_int(0)
 	ret = cvodes.CVadjGetCurrentCheckPoint(cvadj_mem, ctypes.byref(addr))
 	if ret < 0:
@@ -2361,6 +2659,8 @@ cvodes.CVBBDPrecGetReturnFlagName.restype = ctypes.c_char_p
 
 CVLocalFnB = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_long, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVLocalFnB(func):
+	"""
+	"""
 	exec 'def __CallbackInterface_%s(NlocalB, t, y, yB, gB, f_dataB):\n\treturn __ActualCallback[%i](NlocalB, t, nvecserial.NVector(y), nvecserial.NVector(yB), nvecserial.NVector(gB), f_dataB)'%(func.func_name, len(__ActualCallback))
 	if func == None:
 		return ctypes.cast(None, CVLocalFnB)
@@ -2371,6 +2671,8 @@ def WrapCallbackCVLocalFnB(func):
 
 CVCommFnB = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_long, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p)
 def WrapCallbackCVCommFnB(func):
+	"""
+	"""
 	exec 'def __CallbackInterface_%s(NlocalB, t, y, yB, f_dataB):\n\treturn __ActualCallback[%i](NlocalB, t, nvecserial.NVector(y), nvecserial.NVector(yB), f_dataB)'%(func.func_name, len(__ActualCallback))
 	if func == None:
 		return ctypes.cast(None, CVCommFnB)
@@ -2380,6 +2682,10 @@ def WrapCallbackCVCommFnB(func):
 	return tmp
 
 def CVBBDPrecAllocB(cvadj_mem, NlocalB, mudqB, mldqB, mukeepB, mlkeepB, dqrelyB, glocB, cfnB):
+	"""
+   * Interface functions for the CVBBDPRE preconditioner to be used on
+   * the backward phase.
+	"""
 	ret = cvodes.CVBBDPrecAllocB(cvadj_mem, NlocalB, mudqB, mldqB, mukeepB, mlkeepB, dqrelyB, WrapCallbackCVLocalFnB(glocB), WrapCallbackCVCommFnB(cfnB))
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBBDPrecAllocB() failed with flag %i"%(ret))
@@ -2387,6 +2693,10 @@ cvodes.CVBBDPrecAllocB.argtypes = [ctypes.c_void_p, ctypes.c_long, ctypes.c_long
 cvodes.CVBBDPrecAllocB.restype = ctypes.c_int
 
 def CVBBDSptfqmrB(cvadj_mem, pretypeB, maxlB):
+	"""
+   * Interface functions for the CVBBDPRE preconditioner to be used on
+   * the backward phase.
+	"""
 	ret = cvodes.CVBBDSptfqmrB(cvadj_mem, pretypeB, maxlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBBDSptfqmrB() failed with flag %i"%(ret))
@@ -2394,6 +2704,10 @@ cvodes.CVBBDSptfqmrB.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVBBDSptfqmrB.restype = ctypes.c_int
 
 def CVBBDSpbcgB(cvadj_mem, pretypeB, maxlB):
+	"""
+   * Interface functions for the CVBBDPRE preconditioner to be used on
+   * the backward phase.
+	"""
 	ret = cvodes.CVBBDSpbcgB(cvadj_mem, pretypeB, maxlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBBDSpbcgB() failed with flag %i"%(ret))
@@ -2401,6 +2715,10 @@ cvodes.CVBBDSpbcgB.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVBBDSpbcgB.restype = ctypes.c_int
 
 def CVBBDSpgmrB(cvadj_mem, pretypeB, maxlB):
+	"""
+   * Interface functions for the CVBBDPRE preconditioner to be used on
+   * the backward phase.
+	"""
 	ret = cvodes.CVBBDSpgmrB(cvadj_mem, pretypeB, maxlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBBDSpgmrB() failed with flag %i"%(ret))
@@ -2408,6 +2726,10 @@ cvodes.CVBBDSpgmrB.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVBBDSpgmrB.restype = ctypes.c_int
 
 def CVBBDPrecReInitB(cvadj_mem, mudqB, mldqB, dqrelyB, glocB, cfnB):
+	"""
+   * Interface functions for the CVBBDPRE preconditioner to be used on
+   * the backward phase.
+	"""
 	ret = cvodes.CVBBDPrecReInitB(cvadj_mem, mudqB, mldqB, dqrelyB, WrapCallbackCVLocalFnB(glocB), WrapCallbackCVCommFnB(cfnB))
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBBDPrecReInitB() failed with flag %i"%(ret))
@@ -2415,6 +2737,10 @@ cvodes.CVBBDPrecReInitB.argtypes = [ctypes.c_void_p, ctypes.c_long, ctypes.c_lon
 cvodes.CVBBDPrecReInitB.restype = ctypes.c_int
 
 def CVBBDPrecFreeB(cvadj_mem):
+	"""
+   * Interface functions for the CVBBDPRE preconditioner to be used on
+   * the backward phase.
+	"""
 	ret = cvodes.CVBBDPrecFreeB(cvadj_mem)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBBDPrecFreeB() failed with flag %i"%(ret))
@@ -2533,6 +2859,15 @@ cvodes.CVBandPrecGetReturnFlagName.argtypes = [ctypes.c_int]
 cvodes.CVBandPrecGetReturnFlagName.restype = ctypes.c_char_p
 
 def CVBandPrecAllocB(cvadj_mem, nB, muB, mlB):
+	"""
+   * Interface functions for the CVBANDPRE preconditioner to be used
+   * on the backward phase.
+   *
+   * CVBandPrecAllocB interfaces to the CVBANDPRE preconditioner
+   * for the backward integration. The pointer to the structure
+   * returned by this routine should then be used in the call to
+   * CVBPSp*B which interfaces to CVBPSPGMR/CVBPSPBCG/CVSPTFQMR.
+	"""
 	ret = cvodes.CVBandPrecAllocB(cvadj_mem, nB, muB, mlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBandPrecAllocB() failed with flag %i"%(ret))
@@ -2540,6 +2875,10 @@ cvodes.CVBandPrecAllocB.argtypes = [ctypes.c_void_p, ctypes.c_long, ctypes.c_lon
 cvodes.CVBandPrecAllocB.restype = ctypes.c_int
 
 def CVBPSptfqmrB(cvadj_mem, pretypeB, maxlB):
+	"""
+   * Interface functions for the CVBANDPRE preconditioner to be used
+   * on the backward phase.
+	"""
 	ret = cvodes.CVBPSptfqmrB(cvadj_mem, pretypeB, maxlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBPSptfqmrB() failed with flag %i"%(ret))
@@ -2547,6 +2886,10 @@ cvodes.CVBPSptfqmrB.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVBPSptfqmrB.restype = ctypes.c_int
 
 def CVBPSpbcgB(cvadj_mem, pretypeB, maxlB):
+	"""
+   * Interface functions for the CVBANDPRE preconditioner to be used
+   * on the backward phase.
+	"""
 	ret = cvodes.CVBPSpbcgB(cvadj_mem, pretypeB, maxlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBPSpbcgB() failed with flag %i"%(ret))
@@ -2554,6 +2897,10 @@ cvodes.CVBPSpbcgB.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVBPSpbcgB.restype = ctypes.c_int
 
 def CVBPSpgmrB(cvadj_mem, pretypeB, maxlB):
+	"""
+   * Interface functions for the CVBANDPRE preconditioner to be used
+   * on the backward phase.
+	"""
 	ret = cvodes.CVBPSpgmrB(cvadj_mem, pretypeB, maxlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBPSpgmrB() failed with flag %i"%(ret))
@@ -2561,6 +2908,10 @@ cvodes.CVBPSpgmrB.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVBPSpgmrB.restype = ctypes.c_int
 
 def CVBandPrecFreeB(cvadj_mem):
+	"""
+   * Interface functions for the CVBANDPRE preconditioner to be used
+   * on the backward phase.
+	"""
 	ret = cvodes.CVBandPrecFreeB(cvadj_mem)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBandPrecFreeB() failed with flag %i"%(ret))
@@ -2873,7 +3224,7 @@ def CVBandSetJacFn(cvodememobj, func, jac_data):
 		tmp1 (NVector)		preallocated temporary working space
 		tmp2 (NVector)		preallocated temporary working space
 		tmp3 (NVector)		preallocated temporary working space
-	jac_data			a pointer to user data"""
+	jac_data (c_void_p)		a pointer to user data"""
 	ret = cvodes.CVBandSetJacFn(cvodememobj.obj, WrapCallbackCVBandJacFn(func), jac_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBand() failed with flag %i"%(ret))
@@ -2934,6 +3285,8 @@ cvodes.CVBandGetReturnFlagName.restype = ctypes.c_char_p
 
 CVBandJacFnB = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_long, ctypes.c_long, ctypes.c_long, ctypes.POINTER(_BandMat), realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVBandJacFnB(func):
+	"""
+	"""
 	exec 'def __CallbackInterface_%s(nB, mupperB, mlowerB, JB, t, y, yB, fyB, jac_dataB, tmp1B, tmp2B, tmp3B):\n\treturn __ActualCallback[%i](nB, mupperB, mlowerB, BandMat(JB), t, nvecserial.NVector(y), nvecserial.NVector(yB), nvecserial.NVector(fyB), jac_dataB, nvecserial.NVector(tmp1B), nvecserial.NVector(tmp2B), nvecserial.NVector(tmp3B))'%(func.func_name, len(__ActualCallback))
 	if func == None:
 		return ctypes.cast(None, CVBandJacFnB)
@@ -2951,6 +3304,8 @@ cvodes.CVBandB.argtypes = [ctypes.c_void_p, ctypes.c_long, ctypes.c_long, ctypes
 cvodes.CVBandB.restype = ctypes.c_int
 
 def CVBandSetJacFnB(cvadj_mem, bjacB, jac_dataB):
+	"""
+	"""
 	ret = cvodes.CVBandSetJacFnB(cvadj_mem, WrapCallbackCVBandJacFnB(bjacB), jac_dataB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVBandSetJacFnB() failed with flag %i"%(ret))
@@ -3189,7 +3544,7 @@ def CVDenseSetJacFn(cvodememobj, func, jac_data):
 		tmp1 (NVector)		preallocated temporary working space
 		tmp2 (NVector)		preallocated temporary working space
 		tmp3 (NVector)		preallocated temporary working space
-	jac_data			a pointer to user data"""
+	jac_data (c_void_p)		a pointer to user data"""
 	ret = cvodes.CVDenseSetJacFn(cvodememobj.obj, WrapCallbackCVDenseJacFn(func), jac_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVDense() failed with flag %i"%(ret))
@@ -3250,6 +3605,8 @@ cvodes.CVDenseGetReturnFlagName.restype = ctypes.c_char_p
 
 CVDenseJacFnB = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.c_long, ctypes.POINTER(_DenseMat), realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVDenseJacFnB(func):
+	"""
+	"""
 	if func == None:
 		return ctypes.cast(None, CVDenseJacFnB)
 	exec 'def __CallbackInterface_%s(nB, JB, t, y, yB, fyB, jac_dataB, tmp1B, tmp2B, tmp3B):\n\treturn __ActualCallback[%i](nB, DenseMat(JB), t, nvecserial.NVector(y), nvecserial.NVector(yB), nvecserial.NVector(fyB), jac_dataB, nvecserial.NVector(tmp1B), nvecserial.NVector(tmp2B), nvecserial.NVector(tmp3B))'%(func.func_name, len(__ActualCallback))
@@ -3267,6 +3624,8 @@ cvodes.CVDenseB.argtypes = [ctypes.c_void_p, ctypes.c_long]
 cvodes.CVDenseB.restype = ctypes.c_int
 
 def CVDenseSetJacFnB(cvadj_mem, djacB, jac_dataB):
+	"""
+	"""
 	ret = cvodes.CVDenseSetJacFnB(cvadj_mem, WrapCallbackCVDenseJacFnB(djacB), jac_dataB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVDenseSetJacFnB() failed with flag %i"%(ret))
@@ -3429,7 +3788,7 @@ def CVSpilsSetPreconditioner(cvodememobj, pset, psolve, P_data):
 		lr (int)		use left preconditioner (1) or right preconditioner (2)
 		P_data (c_void_p)	pointer to user data set by CVSpilsSetPreconditioner
 		tmp (NVector)		preallocated temporary working space
-	P_data				a pointer to user data"""
+	P_data (c_void_p)		a pointer to user data"""
 	ret = cvodes.CVSpilsSetPreconditioner(cvodememobj.obj, WrapCallbackCVSpilsPrecSetupFn(pset), WrapCallbackCVSpilsPrecSolveFn(psolve), P_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetPreconditioner() failed with flag %i"%(ret))
@@ -3447,7 +3806,7 @@ def CVSpilsSetJacTimesVecFn(cvodememobj, jtimes, jac_data):
 		fy (NVector)		f(t,y)
 		jac_data (c_void_p)	pointer to user data set by CVSpilsSetJacTimesVecFn
 		tmp (NVector)		preallocated temporary working space
-	jac_data			a pointer to user data"""
+	jac_data (c_void_p)		a pointer to user data"""
 	ret = cvodes.CVSpilsSetJacTimesVecFn(cvodememobj.obj, WrapCallbackCVSpilsJacTimesVecFn(jtimes), jac_data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetJacTimesVecFn() failed with flag %i"%(ret))
@@ -3552,6 +3911,8 @@ cvodes.CVSpilsGetReturnFlagName.restype = ctypes.c_char_p
 
 CVSpilsPrecSetupFnB = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_int, ctypes.POINTER(ctypes.c_int), realtype, ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVSpilsPrecSetupFnB(func):
+	"""
+	"""
 	if func == None:
 		return ctypes.cast(None, CVSpilsPrecSetupFnB)
 	exec 'def __CallbackInterface_%s(t, y, yB, fyB, jokB, jcurPtrB, gammaB, P_dataB, tmp1B, tmp2B, tmp3B):\nreturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(yB), nvecserial.NVector(fyB), jokB, ctypes.byref(jcurPtrB), gammaB, P_dataB, nvecserial.NVector(tmp1B), nvecserial.NVector(tmp2B), nvecserial.NVector(tmp3B))'%(func.func_name, len(__ActualCallback))
@@ -3562,6 +3923,8 @@ def WrapCallbackCVSpilsPrecSetupFnB(func):
 
 CVSpilsPrecSolveFnB = ctypes.CFUNCTYPE(ctypes.c_int, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), realtype, realtype, ctypes.c_int, ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVSpilsPrecSolveFnB(func):
+	"""
+	"""
 	if func == None:
 		return ctypes.cast(None, CVSpilsPrecSolveFnB)
 	exec 'def __CallbackInterface_%s(t, y, yB, fyB, rB, zB, gammaB, deltaB, lrB, P_dataB, tmpB):\nreturn __ActualCallback[%i](t, nvecserial.NVector(y), nvecserial.NVector(yB), nvecserial.NVector(fyB), nvecserial.NVector(rB), nvecserial.NVector(zB), gammaB, deltaB, lrB, P_dataB, nvecserial.NVector(tmpB))'%(func.func_name, len(__ActualCallback))
@@ -3572,6 +3935,8 @@ def WrapCallbackCVSpilsPrecSolveFnB(func):
 
 CVSpilsJacTimesVecFnB = ctypes.CFUNCTYPE(ctypes.c_int, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_void_p, ctypes.POINTER(nvecserial._NVector))
 def WrapCallbackCVSpilsJacTimesVecFnB(func):
+	"""
+	"""
 	if func == None:
 		return ctypes.cast(None, CVSpilsJacTimesVecFnB)
 	exec 'def __CallbackInterface_%s(vB, JvB, t, y, yB, fyB, jac_dataB, tmpB):\nreturn __ActualCallback[%i](nvecserial.NVector(vB), nvecserial.NVector(JvB), t, nvecserial.NVector(y), nvecserial.NVector(yB), nvecserial.NVector(fyB), jac_dataB, nvecserial.NVector(tmpB))'%(func.func_name, len(__ActualCallback))
@@ -3581,6 +3946,8 @@ def WrapCallbackCVSpilsJacTimesVecFnB(func):
 	return tmp
 
 def CVSpilsSetPrecTypeB(cvadj_mem, pretypeB):
+	"""
+	"""
 	ret = cvodes.CVSpilsSetPrecTypeB(cvadj_mem, pretypeB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetPrecTypeB() failed with flag %i"%(ret))
@@ -3588,6 +3955,8 @@ cvodes.CVSpilsSetPrecTypeB.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvodes.CVSpilsSetPrecTypeB.restype = ctypes.c_int
 
 def CVSpilsSetGSTypeB(cvadj_mem, gstypeB):
+	"""
+	"""
 	ret = cvodes.CVSpilsSetGSTypeB(cvadj_mem, gstypeB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetGSTypeB() failed with flag %i"%(ret))
@@ -3595,6 +3964,8 @@ cvodes.CVSpilsSetGSTypeB.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvodes.CVSpilsSetGSTypeB.restype = ctypes.c_int
 
 def CVSpilsSetDeltB(cvadj_mem, deltB):
+	"""
+	"""
 	ret = cvodes.CVSpilsSetDeltB(cvadj_mem, deltB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetDeltB() failed with flag %i"%(ret))
@@ -3602,6 +3973,8 @@ cvodes.CVSpilsSetDeltB.argtypes = [ctypes.c_void_p, realtype]
 cvodes.CVSpilsSetDeltB.restype = ctypes.c_int
 
 def CVSpilsSetMaxlB(cvadj_mem, maxlB):
+	"""
+	"""
 	ret = cvodes.CVSpilsSetMaxlB(cvadj_mem, maxlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetMaxlB() failed with flag %i"%(ret))
@@ -3609,6 +3982,8 @@ cvodes.CVSpilsSetMaxlB.argtypes = [ctypes.c_void_p, ctypes.c_int]
 cvodes.CVSpilsSetMaxlB.restype = ctypes.c_int
 
 def CVSpilsSetPreconditionerB(cvadj_mem, psetB, psolveB, P_dataB):
+	"""
+	"""
 	ret = cvodes.CVSpilsSetPreconditionerB(cvadj_mem, WrapCallbackCVSpilsPrecSetupFnB(psetB), WrapCallbackCVSpilsPrecSolveFnB(psolveB), P_dataB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetPreconditionerB() failed with flag %i"%(ret))
@@ -3616,6 +3991,8 @@ cvodes.CVSpilsSetPreconditionerB.argtypes = [ctypes.c_void_p, CVSpilsPrecSetupFn
 cvodes.CVSpilsSetPreconditionerB.restype = ctypes.c_int
 
 def CVSpilsSetJacTimesVecFnB(cvadj_mem, jtimesB, jac_dataB):
+	"""
+	"""
 	ret = cvodes.CVSpilsSetJacTimesVecFnB(cvadj_mem, WrapCallbackCVSpilsJacTimesVecFnB(jtimesB), jac_dataB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpilsSetJacTimesVecFnB() failed with flag %i"%(ret))
@@ -3638,6 +4015,8 @@ cvodes.CVSpbcg.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVSpbcg.restype = ctypes.c_int
 
 def CVSpbcgB(cvadj_mem, pretypeB, maxlB):
+	"""
+	"""
 	ret = cvodes.CVSpbcgB(cvadj_mem, pretypeB, maxlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpbcgB() failed with flag %i"%(ret))
@@ -3660,6 +4039,8 @@ cvodes.CVSpgmr.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVSpgmr.restype = ctypes.c_int
 
 def CVSpgmrB(cvadj_mem, pretypeB, maxlB):
+	"""
+	"""
 	ret = cvodes.CVSpgmrB(cvadj_mem, pretypeB, maxlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSpgmrB() failed with flag %i"%(ret))
@@ -3682,6 +4063,8 @@ cvodes.CVSptfqmr.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_int]
 cvodes.CVSptfqmr.restype = ctypes.c_int
 
 def CVSptfqmrB(cvadj_mem, pretypeB, maxlB):
+	"""
+	"""
 	ret = cvodes.CVSptfqmrB(cvadj_mem, pretypeB, maxlB)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: CVSptfqmrB() failed with flag %i"%(ret))
