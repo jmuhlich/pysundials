@@ -131,46 +131,84 @@ class NVector(object):
 			ctypes.memmove(self.addressof(), vector.ctypes.data, ctypes.sizeof(realtype)* self.length)
 		else:
 			raise TypeError("Cannot create NVector from type %s"%(type(vector).__name__))
-	
+
 	def __getitem__(self, index):
 		"""x.__getitem__(y) <==> x[y]"""
-		if (index < 0) or (index >= self.length):
-			raise IndexError("Vector index out of bounds")
-		#return self.data.contents.content.contents.data[index]
-		return self.cdata[index]
+		if type(index) == slice:
+			# callinx x[a:b] or x[a:b:c]
+			if index.start is not None:
+				i = index.start
+			else:
+				i = 0
+			if index.stop is not None:
+				j = index.stop
+			else:
+				j = self.length
+			if index.step is not None:
+				step = index.step
+			else:
+				step = 1
+			if (i < 0):
+				i += self.length
+			if (j < 0):
+				j += self.length
+			len = (j-i-1)/step + 1
+			if len <= 0:
+				return []
+			ret = NVector([0]*len)
+			x = 0
+			xorig = i
+			while xorig < j:
+				ret[x] = self[xorig]
+				x += 1
+				xorig += step
+			return ret
+		else:
+			if index < 0:
+				index += self.length
+			if (index < 0) or (index >= self.length):
+				raise IndexError("Vector index out of bounds")
+			else: 
+				return self.cdata[index]
 
 	def __setitem__(self, index, value):
 		"""x.__setitem__(i, y) <==> x[i] = y"""
-		if (index < 0) or (index >= self.length):
-			raise IndexError("Vector index out of bounds")
-		#self.data.contents.content.contents.data[index] = value
-		self.cdata[index] = value
-
-	def __getslice__(self, i, j):
-		"""x.__getslice__(i, j) <==> x[i:j]"""
-		if (i < 0):
-			i += self.length
-		if (j < 0):
-			j += self.length
-		ret = NVector([0]*(j-i))
-		x = 0
-		while x+i < j:
-			ret[x] = self[x+i]
-			x += 1
-		return ret
-
-	def __setslice__(self, i, j, y):
-		"""x.__setslice__(i, j, y) <==> x[i:j] = y"""
-		if (i < 0):
-			i += self.length
-		if (j < 0):
-			j += self.length
-		if (j == sys.maxint):
-			j = self.length
-		x = i
-		while x < j:
-			self[x] = y[x-i]
-			x += 1
+		if type(index) == slice:
+			# callinx x[a:b] or x[a:b:c]
+			if index.start is not None:
+				i = index.start
+			else:
+				i = 0
+			if index.stop is not None:
+				j = index.stop
+			else:
+				j = self.length
+			if index.step is not None:
+				step = index.step
+			else:
+				step = 1
+			if (i < 0):
+				i += self.length
+			if (j < 0):
+				j += self.length
+			len = (j-i-1)/step + 1
+			if len <= 0:
+				return
+			if (j == sys.maxint):
+				j = self.length
+			x = i
+			xorig = 0
+			while x < j:
+				self.cdata[x] = value[xorig]
+				x += step
+				xorig += 1
+		else:
+			if index < 0:
+				index += self.length
+			if (index < 0) or (index >= self.length):
+				raise IndexError("Vector index out of bounds")
+			#self.data.contents.content.contents.data[index] = value
+			self.cdata[index] = value
 
 	def __len__(self):
 		"""x.__len__() <==> len(x)"""

@@ -1,0 +1,3 @@
+James Dominy		primary developer
+Brett Olivier		setup.py system type detection and hacks to hor mingw
+Benny Malengier		extended slice notation implemetation for NVectors

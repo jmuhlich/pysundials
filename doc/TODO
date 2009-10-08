@@ -1,5 +1,5 @@
-PySUNDIALS-2.3.0-a0.1
+PySUNDIALS-2.3.0-b9.0
 James Dominy Thu 24 May 2007
 
-docstrings
-check krylov precoditioning for errors, because it's really slow!
+docstrings for IDA and KINSOL
+branch for SUNDIALS 2.4.0 and upgrade for python 2.6 and greater compatibilty
