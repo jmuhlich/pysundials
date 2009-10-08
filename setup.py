@@ -52,7 +52,7 @@ f.close()
 
 setup(
 	 name = "pysundials",
-	 version = "2.3.0-rc1",
+	 version = "2.3.0-rc2",
 	 description = "Python wrappers for the SUite of Non-linear DIfferential and ALgebraic solvers (SUNDIALS).",
 	 maintainer = 'James Dominy',
 	 maintainer_email = 'james@sun.ac.za',
