@@ -92,11 +92,13 @@ __ActualCallback = []
 class IdaMemObj(object):
 	def __init__(self, obj):
 		self.obj = obj
+		self.dealloc = False
 
 	def __del__(self):
-		p = ctypes.c_void_p()
-		p.value = self.obj
-		ida.IDAFree(ctypes.byref(p))
+		if self.dealloc:
+			p = ctypes.c_void_p()
+			p.value = self.obj
+			ida.IDAFree(ctypes.byref(p))
 ida.IDAFree.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 ida.IDAFree.restype = None
 
@@ -315,6 +317,7 @@ def IDAMalloc(ida_mem, res, t0, yy0, yp0, itol, rtol, atol):
 		raise ValueError("itol must be one of IDA_SS or IDA_SV")
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: IDAMalloc() failed with flag %i"%(ret))
+	ida_mem.dealloc = True
 ida.IDAMalloc.argtypes = [ctypes.c_void_p, IDAResFn, realtype, ctypes.POINTER(nvecserial._NVector), ctypes.POINTER(nvecserial._NVector), ctypes.c_int, realtype, ctypes.c_void_p]
 ida.IDAMalloc.restype = ctypes.c_int
 

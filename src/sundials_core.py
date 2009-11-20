@@ -38,54 +38,13 @@ from ctypes import util
 import os
 import sys
 import re
+import subprocess
 
 if os.name == "nt":
-	clib = util.find_library('msvcrt')
+	libc = ctypes.CDLL(util.find_library('msvcrt'))
 else:
-	clib = util.find_library('c')
+	libc = ctypes.CDLL(util.find_library('c'))
 
-auxlibname = open(os.path.dirname(__file__)+'/auxlibname', 'r').read()
-libpaths = {
-	"c": clib,
-	"aux": os.path.dirname(__file__)+'/'+auxlibname,
-	"nvecserial": None,
-	"nvecparallel": None,
-	"cvode": None,
-	"cvodes": None,
-	"ida": None,
-	"kinsol": None
-}
-
-def loadlib(libname):
-	'''Links the specified library into the running python interpreter.\nlibname must be one of 'c', 'aux', 'nvecserial', 'nvecparallel', 'cvode', 'cvodes', 'ida', or 'kinsol'.'''
-	try:
-		lib = ctypes.CDLL(libpaths[libname])
-	except OSError, e:
-		raise OSError("%s\nCannot load shared library %s. Please check you config file and ensure the paths to the shared libraries are correct."%(e, libpaths[libname]))
-	return lib
-
-try:
-	if os.sys.platform == "win32":
-		homedir = os.getenv("HOMEDRIVE")+'/'+os.getenv("HOMEPATH")
-		f = open(homedir+"/pysundials/config", "r")
-	else:
-		homedir = os.getenv("HOME")
-		f = open(homedir+"/.pysundials/config", "r")
-except IOError:
-	try:
-		f = open(os.path.dirname(__file__)+"/config", "r")
-	except IOError:
-		raise IOError("Couldn't find pysundials config file at %s. Please create one, and point it to the appropriate library files."%(os.path.dirname(__file__)+"/config"))
-	
-item = re.compile('(^.*)(#.*)?$')
-for line in f:
-	m = item.match(line)
-	if m.group(1) != '':
-		lib, path = tuple([x.strip() for x in m.group(1).split('=')])
-		libpaths[lib] = path
-f.close()
-
-libc = loadlib("c")
 try:
 	libc.fdopen.argtypes = [ctypes.c_int, ctypes.c_int]
 	libc.fdopen.restype = ctypes.c_void_p
@@ -95,7 +54,37 @@ except:
 	libc._fdopen.restype = ctypes.c_void_p
 	fdopen = libc._fdopen
 
-sundials_core_aux = loadlib("aux")
+libsigs = {
+	"nvecserial": "N_VNew_Serial",
+	"nvecparallel": None,
+	"cvode": "CVodeCreate",
+	"cvodes": "CVodeCreate",
+	"ida": "IDACreate",
+	"kinsol": "KINCreate"
+}
+
+def loadlib(libname):
+	'''Links the specified library into the running python interpreter.\nlibname must be one of 'c', 'aux', 'nvecserial', 'nvecparallel', 'cvode', 'cvodes', 'ida', or 'kinsol'.'''
+	p = subprocess.Popen(['sundials-config', '-m', libname, '-t', 's', '-l', 'c', '-s', 'libs'], stdout=subprocess.PIPE)
+	libdir = p.communicate()[0].split()[0][2:]
+
+	found = False
+	for candidate in [os.path.join(libdir,fname) for fname in os.listdir(libdir) if fname.startswith("libsundials_"+libname)]:
+		try:
+			lib = ctypes.CDLL(candidate)
+			lib.__getattr__(libsigs[libname])
+			found = True
+			break
+		except OSError, e:
+			pass
+
+	if not found:
+		raise OSError("%s\nCannot load shared library %s. Please check you config file and ensure the paths to the shared libraries are correct."%(e, libpaths[libname]))
+	else:
+		return lib
+
+auxlibname = open(os.path.join(os.path.dirname(__file__),'auxlibname'), 'r').read()
+sundials_core_aux = ctypes.CDLL(os.path.join(os.path.dirname(__file__),auxlibname))
 
 realsize = sundials_core_aux.getsizeofrealtype()
 

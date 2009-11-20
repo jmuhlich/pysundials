@@ -76,11 +76,13 @@ __ActualCallback = []
 class KinsolMemObj(object):
 	def __init__(self, obj):
 		self.obj = obj
+		self.dealloc = False
 
 	def __del__(self):
-		p = ctypes.c_void_p()
-		p.value = self.obj
-		kinsol.KINFree(ctypes.byref(p))
+		if self.dealloc:
+			p = ctypes.c_void_p()
+			p.value = self.obj
+			kinsol.KINFree(ctypes.byref(p))
 kinsol.KINFree.argtypes = [ctypes.POINTER(ctypes.c_void_p)]
 kinsol.KINFree.restype = None
 
@@ -294,6 +296,7 @@ def KINMalloc(kinsolmemobj, func, tmpl):
 	ret = kinsol.KINMalloc(kinsolmemobj.obj, WrapCallbackKINSysFn(func), tmpl.data)
 	if ret < 0:
 		raise AssertionError("SUNDIALS ERROR: KINMalloc() failed with flag %i"%(ret))
+	kinsolmemobj.dealloc = True
 kinsol.KINMalloc.argtypes = [ctypes.c_void_p, KINSysFn, ctypes.POINTER(nvecserial._NVector)]
 kinsol.KINMalloc.restype = ctypes.c_int
 
