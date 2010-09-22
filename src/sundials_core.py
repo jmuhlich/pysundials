@@ -64,7 +64,7 @@ libsigs = {
 }
 
 def loadlib(libname):
-	'''Links the specified library into the running python interpreter.\nlibname must be one of 'c', 'aux', 'nvecserial', 'nvecparallel', 'cvode', 'cvodes', 'ida', or 'kinsol'.'''
+	'''Links the specified library into the running python interpreter.\nlibname must be one of 'nvecserial', 'nvecparallel', 'cvode', 'cvodes', 'ida', or 'kinsol'.'''
 	p = subprocess.Popen(['sundials-config', '-m', libname, '-t', 's', '-l', 'c', '-s', 'libs'], stdout=subprocess.PIPE)
 	libdir = p.communicate()[0].split()[0][2:]
 
@@ -79,7 +79,7 @@ def loadlib(libname):
 			pass
 
 	if not found:
-		raise OSError("%s\nCannot load shared library %s. Please check you config file and ensure the paths to the shared libraries are correct."%(e, libpaths[libname]))
+		raise OSError("%s\nCannot load shared library %s. Please check you config file and ensure the paths to the shared libraries are correct."%(e, libname))
 	else:
 		return lib
 
