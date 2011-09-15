@@ -1,7 +1,7 @@
 import os
 import sys
 from distutils.core import setup
-from distutils import ccompiler
+from distutils import ccompiler, util, sysconfig
 
 def usage(errmesg):
 	sys.stderr.write("""%s
@@ -39,11 +39,13 @@ for include in include_dirs:
 
 if compiler_type == "mingw32":
 	compiler.compile(['src/sundials_core_aux.c'])
+	# TODO does this need the same lib.%s-%s treatment as below?
 	compiler.link_shared_lib(['src/sundials_core_aux.o'], 'libsundials_core_aux', 'build/lib/pysundials')
 	libfname = compiler.library_filename('libsundials_core_aux', 'shared')
 else:
 	compiler.compile(['src/sundials_core_aux.c'], extra_postargs=['-fPIC'])
-	compiler.link_shared_lib(['src/sundials_core_aux.o'], 'sundials_core_aux', 'build/lib/pysundials', None, None, None, None, 0, None, ['-fPIC'])
+	compiler.link_shared_lib(['src/sundials_core_aux.o'], 'sundials_core_aux', 'build/lib.%s-%s/pysundials' % (util.get_platform(), sysconfig.get_config_var('VERSION')),
+		None, None, None, None, 0, None, ['-fPIC'])
 	libfname = compiler.library_filename('sundials_core_aux', 'shared')
 
 f = open('src/auxlibname', "w")
